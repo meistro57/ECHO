@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="static/images/ECHO_LOGO.png" alt="ECHO Logo" width="400" />
+  <img src="static/images/ECHO_LOGO.png" alt="ECHO Logo" width="600" />
 </p>
-
-# ECHO
 
 ## Embodied AI Player Characters
 
