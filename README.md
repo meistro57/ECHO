@@ -20,9 +20,9 @@ ECHO is an experimental framework exploring a new paradigm in game AI:
 
 ---
 
-## 🚀 Current Project Status: Phase 8 Completed
+## 🚀 Current Project Status: Phase 9 Completed
 
-ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete 7-tier cognitive, physical, and multimodal speech architecture pipeline:
+ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete cognitive, physical, multimodal speech, and bounded persistent-memory pipeline:
 
 ```
 Microphone Capture (Push-To-Talk 'V') / Typed Console ('Enter')
@@ -81,8 +81,12 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 6. **Sequential Task Execution (`TaskController`) [Phase 7]**:
    - Executes multi-step trusted tasks (`BRING_OBJECT_TO_PLAYER`).
 
-7. **Live Debug HUD & Subtitles (F1 / F3 / F4 / F5 / V / Enter / F6)**:
-   - Displays APC State, Brain Mode, AI Status, Speech Status, Subtitles Overlay, Task Status, Held Object, Perception metrics, and Event Log.
+7. **Persistent Memory Layer (`MemoryService`, `MemoryPolicy`, `JSONMemoryStore`) [Phase 9]**:
+   - Stores bounded, structured local memory records for trusted task outcomes and explicit player memory commands.
+   - Supports session-aware recall, targeted forgetting, pruning by importance, and corruption-safe recovery.
+
+8. **Live Debug HUD & Subtitles (F1 / F3 / F4 / F5 / V / Enter / F6 / F7)**:
+   - Displays APC State, Brain Mode, AI Status, Speech Status, Subtitles Overlay, Task Status, Held Object, Perception metrics, and memory diagnostics.
 
 ---
 
@@ -101,6 +105,7 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 | **Test AI Connectivity** | `F3` |
 | **Toggle Brain Mode** | `F4` (DETERMINISTIC / AI) |
 | **Test Bring Red Box Task** | `F5` |
+| **Clear All Memory (Confirm)** | `F7` |
 
 ---
 
@@ -176,6 +181,15 @@ ECHO/
 │   │   ├── objects/
 │   │   │   ├── portable_object.gd    # Portable object base script & contract
 │   │   │   └── red_box.gd            # Red Box object script extending PortableObject
+│   │   ├── memory/
+│   │   │   ├── memory_service.gd      # Runtime memory orchestration and query/forget flows
+│   │   │   ├── memory_record.gd       # Typed memory record schema
+│   │   │   ├── memory_query.gd        # Structured query filters
+│   │   │   ├── memory_policy.gd       # Storage validation and privacy guards
+│   │   │   ├── memory_store.gd        # Memory store interface
+│   │   │   └── providers/
+│   │   │       ├── json_memory_store.gd # Persistent local JSON memory store
+│   │   │       └── mock_memory_store.gd # Test memory store provider
 │   │   └── test_room.gd              # NavigationMesh baking & scene setup script
 │   ├── ui/                     # UI overlays
 │   │   ├── hud.tscn            # Debug HUD overlay scene
@@ -188,7 +202,8 @@ ECHO/
 │       ├── test_phase5.gd      # Phase 5 AI connectivity layer test
 │       ├── test_phase6.gd      # Phase 6 AI decision bridge & validation test
 │       ├── test_phase7.gd      # Phase 7 object interaction & task execution test
-│       └── test_phase8.gd      # Phase 8 multimodal speech & grounding test
+│       ├── test_phase8.gd      # Phase 8 multimodal speech & grounding test
+│       └── test_phase9.gd      # Phase 9 persistent memory test
 ├── docs/                       # Project Documentation
 │   ├── VISION.md               # Core philosophy & vision
 │   ├── ARCHITECTURE.md         # Component & cognitive pipeline architecture
@@ -199,7 +214,9 @@ ECHO/
 │   ├── TASK_EXECUTION.md       # Phase 7 task execution architecture
 │   ├── VOICE_INTERACTION.md    # Phase 8 voice interaction architecture
 │   ├── COMMAND_GROUNDING.md    # Phase 8 command grounding architecture
-│   └── SHARED_ATTENTION.md     # Phase 8 shared attention architecture
+│   ├── SHARED_ATTENTION.md     # Phase 8 shared attention architecture
+│   ├── MEMORY_SYSTEM.md        # Phase 9 memory architecture and query rules
+│   └── MEMORY_PRIVACY.md       # Phase 9 memory privacy and controls
 ├── static/                     # Repository branding & media
 │   └── images/
 │       └── ECHO_LOGO.png       # Official ECHO framework logo
@@ -265,15 +282,19 @@ godot --headless --path client/ -s tests/test_phase7.gd
 
 # Phase 8 Test (Multimodal Speech, Grounding, & Execution)
 godot --headless --path client/ -s tests/test_phase8.gd
+
+# Phase 9 Test (Persistent Memory)
+godot --headless --path client/ -s tests/test_phase9.gd
 ```
 
 ---
 
-## ⚠️ Scope & Known Limitations (Phase 8 Baseline)
+## ⚠️ Scope & Known Limitations (Phase 9 Baseline)
 
 - **Single Object Target**: Currently configured for one portable object (`RedBox`).
-- **No Long-Term Conversational Memory**: Dialogue context resets after task completion or cancellation.
-- **Statement**: *No long-term memory DB, combat, inventory grid, database, crafting, or multiplayer feature was added.*
+- **Memory Is Intentionally Bounded**: Long free-form transcript storage and unrestricted autonomous memory growth are intentionally disabled.
+- **Local-Only Memory**: Persistent memory is stored at `user://echo_memory.json` and can be cleared from the HUD debug section.
+- **Statement**: *No combat, multiplayer, emotional simulation, autonomous goals, embeddings, or vector database feature was added.*
 
 ---
 

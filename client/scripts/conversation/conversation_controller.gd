@@ -21,6 +21,10 @@ var last_grounding_result: CommandGrounder.GroundingResult
 var ptt_active: bool = false
 var clarification_timer: float = 0.0
 
+var pending_memory_confirmation_action: String = ""
+var pending_memory_confirmation_text: String = ""
+var pending_forget_candidates: Array = []
+
 @export var clarification_timeout_seconds: float = 15.0
 
 var audio_capture: AudioCaptureService
@@ -61,19 +65,16 @@ func _process(delta: float) -> void:
 		if clarification_timer <= 0.0:
 			pending_clarification_target = ""
 
-	# Handle Push-To-Talk input
 	if Input.is_action_just_pressed("push_to_talk"):
 		_on_ptt_pressed()
 	elif Input.is_action_just_released("push_to_talk"):
 		_on_ptt_released()
 
-	# Handle Cancel key (F6)
 	if Input.is_action_just_pressed("cancel_current_request"):
 		cancel_active_conversation_or_task()
 
 func _on_ptt_pressed() -> void:
 	if current_state == State.RESPONDING:
-		# Interruption handling: stop current speech immediately
 		_stop_apc_speech()
 
 	ptt_active = true
@@ -124,53 +125,176 @@ func _process_audio_buffer(buf: AudioBuffer) -> void:
 func _interpret_and_execute(text: String) -> void:
 	active_turn_id = "turn_%d" % int(Time.get_ticks_msec())
 
+	if _handle_pending_memory_confirmation(text):
+		return
+
+	var memory_services: Array[Node] = get_tree().get_nodes_in_group("memory_service")
+	var memory_service: MemoryService = memory_services[0] as MemoryService if memory_services.size() > 0 else null
+
 	var perception_snap: Dictionary = apc_node.get_perception_snapshot() if apc_node else {}
-	var attention_snap: Dictionary = player_node.get("get_attention_snapshot").call() if player_node and player_node.has_method("get_attention_snapshot") else {}
+	var attention_snap: Dictionary = {}
+	if player_node and player_node.has_method("get_attention_snapshot"):
+		attention_snap = player_node.call("get_attention_snapshot")
 	var held_obj: PortableObject = apc_node.interaction_controller.get_held_object() if apc_node and apc_node.interaction_controller else null
 
 	var ground_res: CommandGrounder.GroundingResult = CommandGrounder.ground_command(
-		text, perception_snap, attention_snap, held_obj, pending_clarification_target
+		text,
+		perception_snap,
+		attention_snap,
+		held_obj,
+		pending_clarification_target
 	)
 	last_grounding_result = ground_res
 
+	if _handle_memory_intent(ground_res, memory_service):
+		return
+
 	if ground_res.is_cancel:
 		cancel_active_conversation_or_task()
-		var resp: String = ResponseCoordinator.select_response_text(ground_res)
-		_trigger_apc_response(resp)
+		_trigger_apc_response(ResponseCoordinator.select_response_text(ground_res))
 		return
 
 	if ground_res.needs_clarification:
 		_set_state(State.AWAITING_CLARIFICATION)
 		pending_clarification_target = "ambiguous_box"
 		clarification_timer = clarification_timeout_seconds
-		var resp: String = ResponseCoordinator.select_response_text(ground_res)
-		_trigger_apc_response(resp)
+		_trigger_apc_response(ResponseCoordinator.select_response_text(ground_res))
 		return
 
 	if ground_res.success:
 		pending_clarification_target = ""
 		_set_state(State.EXECUTING)
-
 		if ground_res.task_request != null and apc_node and apc_node.task_controller:
 			apc_node.task_controller.start_task(ground_res.task_request)
+		_trigger_apc_response(ResponseCoordinator.select_response_text(ground_res))
+		return
 
-		var resp: String = ResponseCoordinator.select_response_text(ground_res)
-		_trigger_apc_response(resp)
-	else:
-		_set_state(State.ERROR)
-		_trigger_apc_response("I couldn't complete that.")
+	_set_state(State.ERROR)
+	_trigger_apc_response("I couldn't complete that.")
+
+func _handle_memory_intent(ground_res: CommandGrounder.GroundingResult, memory_service: MemoryService) -> bool:
+	if not ground_res.is_memory_query and not ground_res.is_memory_store_command and not ground_res.is_memory_forget_command and not ground_res.is_memory_clear_all_command:
+		return false
+
+	if memory_service == null or not memory_service.memory_enabled:
+		_trigger_apc_response("Memory is currently disabled.")
+		return true
+
+	if ground_res.is_memory_query:
+		var answer: Dictionary = memory_service.build_memory_answer(latest_human_transcript)
+		var response_text: String = String(answer.get("text", "I don't have a stored memory of that."))
+		var records: Array = answer.get("records", [])
+		if records.size() > 0:
+			pending_forget_candidates = records
+		_trigger_apc_response(response_text)
+		return true
+
+	if ground_res.is_memory_store_command:
+		if ground_res.needs_confirmation:
+			pending_memory_confirmation_action = "store"
+			pending_memory_confirmation_text = latest_human_transcript
+			_trigger_apc_response("Please confirm memory storage by saying yes or no.")
+			return true
+		var stored = memory_service.record_player_statement(ground_res.memory_fact_text)
+		if stored == null:
+			_trigger_apc_response("I could not store that memory.")
+		else:
+			_trigger_apc_response("I will remember that.")
+		return true
+
+	if ground_res.is_memory_forget_command:
+		var term: String = ground_res.memory_query_term.strip_edges()
+		if term.is_empty() and pending_forget_candidates.size() == 1:
+			var remembered = pending_forget_candidates[0]
+			if memory_service.forget_by_id(remembered.memory_id):
+				_trigger_apc_response("I forgot that memory.")
+			else:
+				_trigger_apc_response("I could not forget that memory.")
+			return true
+
+		if term.is_empty():
+			_trigger_apc_response("Please tell me exactly what to forget.")
+			return true
+
+		var candidates: Array = memory_service.find_forget_candidates(term)
+		if candidates.is_empty():
+			_trigger_apc_response("I don't have a stored memory matching that.")
+			return true
+
+		if candidates.size() > 1:
+			pending_forget_candidates = candidates
+			_trigger_apc_response("I found multiple memories. Please be more specific.")
+			return true
+
+		var target = candidates[0]
+		if memory_service.forget_by_id(target.memory_id):
+			_trigger_apc_response("I forgot that memory.")
+		else:
+			_trigger_apc_response("I could not forget that memory.")
+		return true
+
+	if ground_res.is_memory_clear_all_command:
+		pending_memory_confirmation_action = "clear_all"
+		pending_memory_confirmation_text = ""
+		_trigger_apc_response("Clear all memory requires confirmation. Say yes or no.")
+		return true
+
+	return false
+
+func _handle_pending_memory_confirmation(raw_text: String) -> bool:
+	if pending_memory_confirmation_action.is_empty():
+		return false
+	var normalized: String = raw_text.to_lower().strip_edges()
+	var is_yes: bool = normalized == "yes" or normalized == "confirm" or normalized == "do it"
+	var is_no: bool = normalized == "no" or normalized == "cancel"
+	if not is_yes and not is_no:
+		_trigger_apc_response("Please answer yes or no.")
+		return true
+
+	var memory_services: Array[Node] = get_tree().get_nodes_in_group("memory_service")
+	var memory_service: MemoryService = memory_services[0] as MemoryService if memory_services.size() > 0 else null
+	if memory_service == null:
+		pending_memory_confirmation_action = ""
+		pending_memory_confirmation_text = ""
+		_trigger_apc_response("Memory service is unavailable.")
+		return true
+
+	if is_no:
+		pending_memory_confirmation_action = ""
+		pending_memory_confirmation_text = ""
+		_trigger_apc_response("Okay, I won't change memory.")
+		return true
+
+	if pending_memory_confirmation_action == "store":
+		var stored = memory_service.record_player_statement(pending_memory_confirmation_text)
+		pending_memory_confirmation_action = ""
+		pending_memory_confirmation_text = ""
+		if stored == null:
+			_trigger_apc_response("I could not store that memory.")
+		else:
+			_trigger_apc_response("I will remember that.")
+		return true
+
+	if pending_memory_confirmation_action == "clear_all":
+		pending_memory_confirmation_action = ""
+		pending_memory_confirmation_text = ""
+		if memory_service.clear_all_memories():
+			_trigger_apc_response("All stored memory has been cleared.")
+		else:
+			_trigger_apc_response("I could not clear memory.")
+		return true
+
+	pending_memory_confirmation_action = ""
+	pending_memory_confirmation_text = ""
+	return false
 
 func _trigger_apc_response(resp_text: String) -> void:
 	latest_apc_response_text = resp_text
 	apc_response_generated.emit(resp_text)
-
 	if speech_service and speech_service.tts_enabled:
 		speech_service.synthesize(resp_text)
-
 	_set_state(State.RESPONDING)
-
-	# Auto-restore IDLE after display duration
-	get_tree().create_timer(3.0).timeout.connect(func():
+	get_tree().create_timer(3.0).timeout.connect(func() -> void:
 		if current_state == State.RESPONDING:
 			_set_state(State.IDLE)
 	)
@@ -181,6 +305,9 @@ func cancel_active_conversation_or_task() -> void:
 	if apc_node and apc_node.task_controller:
 		apc_node.task_controller.cancel_task()
 	pending_clarification_target = ""
+	pending_memory_confirmation_action = ""
+	pending_memory_confirmation_text = ""
+	pending_forget_candidates.clear()
 	_stop_apc_speech()
 	_set_state(State.IDLE)
 
@@ -193,12 +320,20 @@ func _set_state(new_state: State) -> void:
 
 func get_state_string() -> String:
 	match current_state:
-		State.IDLE: return "IDLE"
-		State.RECORDING: return "RECORDING"
-		State.TRANSCRIBING: return "TRANSCRIBING"
-		State.INTERPRETING: return "INTERPRETING"
-		State.AWAITING_CLARIFICATION: return "AWAITING_CLARIFICATION"
-		State.EXECUTING: return "EXECUTING"
-		State.RESPONDING: return "RESPONDING"
-		State.ERROR: return "ERROR"
+		State.IDLE:
+			return "IDLE"
+		State.RECORDING:
+			return "RECORDING"
+		State.TRANSCRIBING:
+			return "TRANSCRIBING"
+		State.INTERPRETING:
+			return "INTERPRETING"
+		State.AWAITING_CLARIFICATION:
+			return "AWAITING_CLARIFICATION"
+		State.EXECUTING:
+			return "EXECUTING"
+		State.RESPONDING:
+			return "RESPONDING"
+		State.ERROR:
+			return "ERROR"
 	return "IDLE"

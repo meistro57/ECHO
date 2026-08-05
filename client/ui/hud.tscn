@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 580.0
-offset_bottom = 630.0
+offset_right = 620.0
+offset_bottom = 660.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -47,13 +47,13 @@ mouse_filter = 2
 [node name="TitleLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "ECHO Prototype"
+text = "ECHO Framework"
 
 [node name="PhaseLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 8: Multimodal Speech, Grounding, & Natural Language Execution"
+text = "Phase 9: Explicit Persistent Memory & Experience Recall"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -78,6 +78,44 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.4, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Conv State: IDLE | PTT: IDLE | STT: mock_stt | TTS: mock_tts"
+
+[node name="MemoryStatusLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "Memory Enabled: YES | Records: 0 | Last Type: None | Last Query: 0 | Err: None"
+
+[node name="MemoryDetailLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Session: None | Last Summary: None"
+
+[node name="MemoryFileLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Memory File: user://echo_memory.json"
+
+[node name="MemoryManagerHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "Memory Records (Debug):"
+
+[node name="MemoryRecordsList" type="ItemList" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+select_mode = 0
+
+[node name="MemoryButtons" type="HBoxContainer" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DeleteMemoryButton" type="Button" parent="MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryButtons"]
+layout_mode = 2
+text = "Delete Selected"
+
+[node name="ClearMemoryButton" type="Button" parent="MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryButtons"]
+layout_mode = 2
+text = "Clear All (Confirm)"
 
 [node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -166,7 +204,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "WASD: Move | Mouse: Look | Space: Jump | Escape: Mouse
 F1: Toggle Debug HUD | F3: Test AI Connectivity | F4: Toggle Brain Mode | F5: Test Bring Task
-V: Push-To-Talk (Hold) | Enter: Typed Text Command | F6: Cancel Request / Task"
+V: Push-To-Talk (Hold) | Enter: Typed Text Command | F6: Cancel Request | F7: Clear Memory (Confirm)"
 
 [node name="SubtitlePanel" type="PanelContainer" parent="."]
 visible = false

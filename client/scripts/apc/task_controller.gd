@@ -65,6 +65,7 @@ func process_task_tick(delta: float, player_node: Node3D = null) -> ActionTypes.
 		current_task_result.message = "Task '%s' completed successfully" % current_task_request.task_type
 		current_task_result.time_completed = Time.get_ticks_msec() / 1000.0
 		is_running_task = false
+		_record_task_memory(current_task_request, current_task_result)
 		task_completed.emit(current_task_result)
 		return null
 
@@ -150,7 +151,19 @@ func _fail_current_task(err_msg: String) -> void:
 		current_task_result.time_completed = Time.get_ticks_msec() / 1000.0
 		last_task_error = err_msg
 		is_running_task = false
+		_record_task_memory(current_task_request, current_task_result)
 		task_failed.emit(current_task_result)
+
+func _record_task_memory(req: TaskRequest, res: TaskResult) -> void:
+	if req == null or res == null:
+		return
+	var mem_services: Array[Node] = get_tree().get_nodes_in_group("memory_service")
+	if mem_services.size() > 0 and mem_services[0] is MemoryService:
+		var ms: MemoryService = mem_services[0] as MemoryService
+		if res.success:
+			ms.record_task_completion(req.task_type, req.target_id)
+		else:
+			ms.record_task_failure(req.task_type, req.target_id, res.message)
 
 func _find_perceivable_target(obj_id: String) -> Node3D:
 	var perceivables: Array[Node] = get_tree().get_nodes_in_group("perceivable")

@@ -6,6 +6,13 @@ class GroundingResult extends RefCounted:
 	var action_request: ActionTypes.ActionRequest = null
 	var task_request: TaskRequest = null
 	var is_cancel: bool = false
+	var is_memory_query: bool = false
+	var is_memory_store_command: bool = false
+	var is_memory_forget_command: bool = false
+	var is_memory_clear_all_command: bool = false
+	var memory_query_term: String = ""
+	var memory_fact_text: String = ""
+	var needs_confirmation: bool = false
 	var needs_clarification: bool = false
 	var clarification_prompt: String = ""
 	var resolved_target_id: String = ""
@@ -18,128 +25,159 @@ static func ground_command(
 	held_object: PortableObject = null,
 	pending_clarification_target: String = ""
 ) -> GroundingResult:
-	var res: GroundingResult = GroundingResult.new()
-	var text: String = raw_text.to_lower().strip_edges()
+	var result: GroundingResult = GroundingResult.new()
+	var normalized_text: String = _normalize_text(raw_text)
 
-	# Strip punctuation
-	for p in [".", ",", "!", "?", ";", ":", "'", "\""]:
-		text = text.replace(p, "")
-	text = text.strip_edges()
+	if normalized_text.is_empty():
+		result.error_message = "Empty input text"
+		return result
 
-	if text.is_empty():
-		res.error_message = "Empty input text"
-		return res
+	if _ground_memory_commands(raw_text, normalized_text, result):
+		return result
 
-	# 1. Cancel commands
-	if text == "cancel" or text == "cancel task" or text == "stop task" or text == "stop":
-		res.success = true
-		res.is_cancel = true
-		return res
+	if normalized_text == "cancel" or normalized_text == "cancel task" or normalized_text == "stop task" or normalized_text == "stop":
+		result.success = true
+		result.is_cancel = true
+		return result
 
-	# 2. Check pending clarification resolution
 	if not pending_clarification_target.is_empty():
-		if text.contains("red") or text.contains("box"):
-			res.success = true
-			res.resolved_target_id = "red_box"
-			res.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
-			return res
+		if normalized_text.contains("red") or normalized_text.contains("box"):
+			result.success = true
+			result.resolved_target_id = "red_box"
+			result.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
+			return result
 
-	# 3. Direct deterministic commands
-	# 3a: FOLLOW_PLAYER
-	if text.contains("follow me") or text.contains("come here") or text.contains("come over here"):
-		res.success = true
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.FOLLOW_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken follow request")
-		return res
+	if normalized_text.contains("follow me") or normalized_text.contains("come here") or normalized_text.contains("come over here"):
+		result.success = true
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.FOLLOW_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken follow request")
+		return result
 
-	# 3b: WAIT
-	if text == "wait" or text == "wait there" or text == "hold on":
-		res.success = true
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.WAIT, "human_player", Vector3.ZERO, 0.0, "Spoken wait request")
-		return res
+	if normalized_text == "wait" or normalized_text == "wait there" or normalized_text == "hold on":
+		result.success = true
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.WAIT, "human_player", Vector3.ZERO, 0.0, "Spoken wait request")
+		return result
 
-	# 3c: LOOK_AT_PLAYER
-	if text.contains("look at me"):
-		res.success = true
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.LOOK_AT_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken look at player request")
-		return res
+	if normalized_text.contains("look at me"):
+		result.success = true
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.LOOK_AT_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken look at player request")
+		return result
 
-	# 3d: LOOK_AT_OBJECT
-	if text.contains("look at the red box") or text.contains("look at red box"):
-		res.success = true
-		res.resolved_target_id = "red_box"
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.LOOK_AT_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken look at object request")
-		return res
+	if normalized_text.contains("look at the red box") or normalized_text.contains("look at red box"):
+		result.success = true
+		result.resolved_target_id = "red_box"
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.LOOK_AT_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken look at object request")
+		return result
 
-	# 3e: MOVE_TO_OBJECT
-	if text.contains("go to the red box") or text.contains("move to red box"):
-		res.success = true
-		res.resolved_target_id = "red_box"
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.MOVE_TO_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken move to object request")
-		return res
+	if normalized_text.contains("go to the red box") or normalized_text.contains("move to red box"):
+		result.success = true
+		result.resolved_target_id = "red_box"
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.MOVE_TO_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken move to object request")
+		return result
 
-	# 3f: DROP_HELD_OBJECT
-	if text.contains("drop the box") or text.contains("drop it") or text == "drop":
+	if normalized_text.contains("drop the box") or normalized_text.contains("drop it") or normalized_text == "drop":
 		if held_object != null:
-			res.success = true
-			res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.DROP_HELD_OBJECT, held_object.object_id, Vector3.ZERO, 0.0, "Spoken drop request")
-			return res
-		else:
-			res.error_message = "Cannot drop: APC is not holding any object"
-			return res
+			result.success = true
+			result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.DROP_HELD_OBJECT, held_object.object_id, Vector3.ZERO, 0.0, "Spoken drop request")
+			return result
+		result.error_message = "Cannot drop: APC is not holding any object"
+		return result
 
-	# 3g: GIVE_OBJECT_TO_PLAYER
-	if text.contains("give me the box") or text.contains("give it to me") or text == "give it":
+	if normalized_text.contains("give me the box") or normalized_text.contains("give it to me") or normalized_text == "give it":
 		if held_object != null:
-			res.success = true
-			res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.GIVE_OBJECT_TO_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken give request")
-			return res
-		else:
-			res.error_message = "Cannot give: APC is not holding any object"
-			return res
+			result.success = true
+			result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.GIVE_OBJECT_TO_PLAYER, "human_player", Vector3.ZERO, 0.0, "Spoken give request")
+			return result
+		result.error_message = "Cannot give: APC is not holding any object"
+		return result
 
-	# 3h: PICK_UP_OBJECT
-	if text.contains("pick up the red box") or text.contains("pick up the box") or text.contains("pick up red box"):
-		res.success = true
-		res.resolved_target_id = "red_box"
-		res.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.PICK_UP_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken pickup request")
-		return res
+	if normalized_text.contains("pick up the red box") or normalized_text.contains("pick up the box") or normalized_text.contains("pick up red box"):
+		result.success = true
+		result.resolved_target_id = "red_box"
+		result.action_request = ActionTypes.ActionRequest.new(ActionTypes.Action.PICK_UP_OBJECT, "red_box", Vector3.ZERO, 0.0, "Spoken pickup request")
+		return result
 
-	# 3i: BRING_OBJECT_TO_PLAYER
-	if text.contains("bring me the red box") or text.contains("bring me that red box") or text.contains("bring red box"):
-		res.success = true
-		res.resolved_target_id = "red_box"
-		res.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
-		return res
+	if normalized_text.contains("bring me the red box") or normalized_text.contains("bring me that red box") or normalized_text.contains("bring red box"):
+		result.success = true
+		result.resolved_target_id = "red_box"
+		result.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
+		return result
 
-	# 4. Reference Grounding ("that", "it", "this", "the box")
-	if text.contains("bring me that") or text.contains("bring it to me") or text == "bring me the box":
-		# Check player attention aim target
+	if normalized_text.contains("bring me that") or normalized_text.contains("bring it to me") or normalized_text == "bring me the box":
 		var aim_target: String = String(attention_snapshot.get("aim_target_id", ""))
 		if aim_target == "red_box":
-			res.success = true
-			res.resolved_target_id = "red_box"
-			res.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
-			return res
+			result.success = true
+			result.resolved_target_id = "red_box"
+			result.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_voice")
+			return result
 
-		# Check if multiple candidates or ambiguous reference
 		var candidate_objects: Array[String] = []
 		if perception_snapshot.has("nearby_objects"):
-			var objs: Array = perception_snapshot["nearby_objects"]
-			for obj in objs:
-				if obj is Dictionary and obj.has("id"):
-					candidate_objects.append(String(obj["id"]))
+			var nearby: Variant = perception_snapshot.get("nearby_objects", [])
+			if nearby is Array:
+				for obj in nearby:
+					if obj is Dictionary and obj.has("id"):
+						candidate_objects.append(String(obj["id"]))
 
 		if candidate_objects.size() > 1:
-			res.success = false
-			res.needs_clarification = true
-			res.clarification_prompt = "Which object do you mean?"
-			return res
-		elif candidate_objects.size() == 1:
-			var single_id: String = candidate_objects[0]
-			res.success = true
-			res.resolved_target_id = single_id
-			res.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", single_id, "human_voice")
-			return res
+			result.success = false
+			result.needs_clarification = true
+			result.clarification_prompt = "Which object do you mean?"
+			return result
 
-	res.error_message = "Command not recognized: '%s'" % raw_text
-	return res
+		if candidate_objects.size() == 1:
+			var single_id: String = candidate_objects[0]
+			result.success = true
+			result.resolved_target_id = single_id
+			result.task_request = TaskRequest.new("BRING_OBJECT_TO_PLAYER", single_id, "human_voice")
+			return result
+
+	result.error_message = "Command not recognized: '%s'" % raw_text
+	return result
+
+static func _ground_memory_commands(raw_text: String, normalized_text: String, result: GroundingResult) -> bool:
+	if normalized_text.contains("what did you help me with") or normalized_text.contains("what did you do last time") or normalized_text.contains("did you bring me the red box before") or normalized_text.contains("what do you remember"):
+		result.success = true
+		result.is_memory_query = true
+		if normalized_text.contains("red box"):
+			result.memory_query_term = "red_box"
+		elif normalized_text.contains("me"):
+			result.memory_query_term = "human_player"
+		else:
+			result.memory_query_term = ""
+		return true
+
+	if normalized_text.begins_with("remember that") or normalized_text.begins_with("remember i") or normalized_text.begins_with("my preference is"):
+		result.success = true
+		result.is_memory_store_command = true
+		result.memory_fact_text = raw_text.strip_edges()
+		if normalized_text.contains("password") or normalized_text.contains("secret"):
+			result.needs_confirmation = true
+		return true
+
+	if normalized_text == "clear all memory" or normalized_text == "clear memory":
+		result.success = true
+		result.is_memory_clear_all_command = true
+		result.needs_confirmation = true
+		return true
+
+	if normalized_text.begins_with("forget"):
+		result.success = true
+		result.is_memory_forget_command = true
+		var forget_term: String = raw_text.strip_edges()
+		var lower: String = forget_term.to_lower()
+		if lower.begins_with("forget that "):
+			forget_term = forget_term.substr(12).strip_edges()
+		elif lower == "forget that":
+			forget_term = ""
+		elif lower.begins_with("forget "):
+			forget_term = forget_term.substr(7).strip_edges()
+		result.memory_query_term = forget_term
+		return true
+
+	return false
+
+static func _normalize_text(raw_text: String) -> String:
+	var text: String = raw_text.to_lower().strip_edges()
+	for punct in [".", ",", "!", "?", ";", ":", "'", "\""]:
+		text = text.replace(punct, "")
+	return text.strip_edges()
