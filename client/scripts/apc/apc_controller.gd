@@ -13,6 +13,7 @@ enum State { IDLE, FOLLOWING }
 
 var current_state: State = State.IDLE
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
+var navigation_ready: bool = false
 
 signal state_changed(new_state: State)
 
@@ -21,10 +22,31 @@ func _ready() -> void:
 	if nav_agent:
 		nav_agent.path_desired_distance = 0.5
 		nav_agent.target_desired_distance = stop_distance
+	_setup_navigation_map()
+
+func _setup_navigation_map() -> void:
+	navigation_ready = false
+	# Wait for physics frame to ensure world 3D and navigation map are active
+	await get_tree().physics_frame
+	
+	var world_3d = get_world_3d()
+	if world_3d:
+		var map_rid = world_3d.get_navigation_map()
+		while NavigationServer3D.map_get_iteration_id(map_rid) == 0:
+			await get_tree().physics_frame
+			
+	navigation_ready = true
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+
+	# Guard: Keep APC stationary and IDLE until navigation map is fully synchronized
+	if not navigation_ready:
+		velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
+		velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
+		move_and_slide()
+		return
 
 	if target == null:
 		var players = get_tree().get_nodes_in_group("human_player")

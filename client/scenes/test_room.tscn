@@ -8,8 +8,9 @@
 [sub_resource type="NavigationMesh" id="NavigationMesh_room"]
 vertices = PackedVector3Array(-9.5, 0.1, -9.5, -9.5, 0.1, 9.5, 9.5, 0.1, 9.5, 9.5, 0.1, -9.5)
 polygons = [PackedInt32Array(0, 1, 2), PackedInt32Array(0, 2, 3)]
-agent_height = 1.8
+agent_height = 1.75
 agent_radius = 0.5
+cell_height = 0.25
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(20, 0.2, 20)

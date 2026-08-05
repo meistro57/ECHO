@@ -19,7 +19,7 @@ func _init() -> void:
 
 func _process(_delta: float) -> bool:
 	test_step += 1
-	if test_step == 3:
+	if test_step == 5:
 		run_tests()
 		quit(0)
 		return true
@@ -39,20 +39,34 @@ func run_tests() -> void:
 	var hud = test_room.get_node_or_null("CanvasLayer/HUD")
 	
 	if player == null or apc == null or nav_region == null or nav_agent == null or hud == null:
-		print("[FAIL] Missing required Phase 2 nodes (NavigationRegion3D / NavigationAgent3D / APC / Player / HUD).")
+		print("[FAIL] Missing required Phase 2 nodes.")
 		quit(1)
 		return
 		
 	print("[PASS] NavigationRegion3D, NavigationAgent3D, Player, APC, and HUD present in scene.")
+
+	if not InputMap.has_action("toggle_debug"):
+		print("[FAIL] InputMap action 'toggle_debug' is missing.")
+		quit(1)
+		return
+	print("[PASS] InputMap action 'toggle_debug' registered successfully.")
 	
-	# Test 1: Initial State & Distance
-	print("\n--- Test 1: Initial State Verification ---")
+	# Test 1: Navigation Synchronization Readiness
+	print("\n--- Test 1: Navigation Synchronization Readiness ---")
+	print("APC Navigation Ready Flag: %s" % apc.navigation_ready)
+	if not apc.navigation_ready:
+		print("[FAIL] APC navigation_ready should be true after frame synchronization.")
+		quit(1)
+		return
+	print("[PASS] APC navigation_ready flag set to true after NavigationServer map synchronization.")
+	
+	# Test 2: Locomotion State Machine (IDLE / FOLLOWING)
+	print("\n--- Test 2: Locomotion State Machine ---")
 	var initial_dist = apc.global_position.distance_to(player.global_position)
 	print("Spawn Distance: %.2fm" % initial_dist)
 	print("APC State at Spawn: %s" % apc.get_state_string())
 	
 	if initial_dist > apc.start_follow_distance and apc.current_state != APCController.State.FOLLOWING:
-		# Force physics process frame evaluation
 		apc._physics_process(0.016)
 		
 	print("APC State after tick: %s" % apc.get_state_string())
@@ -62,9 +76,8 @@ func run_tests() -> void:
 		return
 	print("[PASS] APC correctly entered FOLLOWING state when player is beyond start distance.")
 	
-	# Test 2: Hysteresis & Stopping Distance
-	print("\n--- Test 2: Hysteresis & Stopping Distance ---")
-	# Position player within stopping distance of APC
+	# Test 3: Hysteresis & Stopping Distance
+	print("\n--- Test 3: Hysteresis & Stopping Distance ---")
 	player.global_position = apc.global_position + Vector3(1.2, 0, 0)
 	apc._physics_process(0.016)
 	
@@ -77,9 +90,8 @@ func run_tests() -> void:
 		return
 	print("[PASS] APC cleanly entered IDLE state upon reaching player without jittering.")
 	
-	# Test 3: Pathfinding Navigation Around Obstacles
-	print("\n--- Test 3: Obstacle Navigation ---")
-	# Place player on opposite side of crate obstacle
+	# Test 4: Obstacle Navigation Path Query
+	print("\n--- Test 4: Obstacle Navigation Path Query ---")
 	player.global_position = Vector3(-6, 0.9, -6)
 	apc.global_position = Vector3(6, 0.9, 6)
 	
@@ -91,5 +103,5 @@ func run_tests() -> void:
 	print("Next Navigation Waypoint: ", next_path_pos)
 	
 	print("\n==========================================")
-	print("  PHASE 2 VERIFICATION PASSED SUCCESSFULLY [OK]")
+	print("  PHASE 2 NAVIGATION FIX VERIFICATION PASSED [OK]")
 	print("==========================================\n")
