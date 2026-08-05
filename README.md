@@ -9,6 +9,9 @@
 
 ## 🌟 Core Concept
 
+<img width="1201" height="1316" alt="image" src="https://github.com/user-attachments/assets/29acb66c-81a5-4f28-beba-a1175f6be00a" />
+
+
 ECHO is an experimental framework exploring a new paradigm in game AI:
 
 - **Shared Co-Presence**: A human-controlled player and an AI-controlled player character (APC) occupy the exact same 3D physical environment.
