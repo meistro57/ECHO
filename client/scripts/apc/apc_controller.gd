@@ -1,26 +1,19 @@
 class_name APCController
 extends CharacterBody3D
 
-enum State { IDLE, FOLLOWING }
-
 @export var target: Node3D
-@export var move_speed: float = 3.5
-@export var stop_distance: float = 2.0
-@export var start_follow_distance: float = 3.2
-@export var rotation_speed: float = 8.0
-@export var path_update_interval: float = 0.2
 
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var perception: APCPerception = $Perception
+@onready var brain: APCBrain = $Brain
+@onready var action_controller: ActionController = $ActionController
 
-var current_state: State = State.IDLE
 var navigation_ready: bool = false
-
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
-var _path_timer: float = 0.0
 var _last_slide_collision_count: int = 0
+var _current_action_request: ActionTypes.ActionRequest
 
-signal state_changed(new_state: State)
+signal state_changed(new_state: String)
 
 func _ready() -> void:
 	add_to_group("apc")
@@ -57,70 +50,41 @@ func _physics_process(delta: float) -> void:
 
 	# 3. Wait for navigation readiness
 	if not navigation_ready or target == null:
-		velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
-		velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
+		velocity.x = move_toward(velocity.x, 0.0, 3.5 * delta * 5.0)
+		velocity.z = move_toward(velocity.z, 0.0, 3.5 * delta * 5.0)
 		move_and_slide()
 		_last_slide_collision_count = get_slide_collision_count()
 		return
 
-	# 4. Update state with hysteresis buffer
-	var dist_to_target: float = global_position.distance_to(target.global_position)
-	match current_state:
-		State.IDLE:
-			if dist_to_target > start_follow_distance:
-				_change_state(State.FOLLOWING)
-		State.FOLLOWING:
-			if dist_to_target <= stop_distance:
-				_change_state(State.IDLE)
+	# 4. Pipeline Step 1: Perception
+	var snapshot: Dictionary = {}
+	if perception:
+		snapshot = perception.get_perception_snapshot()
 
-	# 5. Process state behavior
-	match current_state:
-		State.IDLE:
-			velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
-			velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
-			_path_timer = 0.0
-		State.FOLLOWING:
-			# 5a. Update navigation target periodically using map snapping
-			_path_timer += delta
-			if _path_timer >= path_update_interval or nav_agent.target_position == Vector3.ZERO:
-				_path_timer = 0.0
-				var map_rid: RID = nav_agent.get_navigation_map()
-				var snapped_target: Vector3 = NavigationServer3D.map_get_closest_point(map_rid, target.global_position)
-				nav_agent.target_position = snapped_target
+	var player_visible: bool = false
+	if snapshot.has("human_player"):
+		player_visible = bool(snapshot["human_player"].get("visible", false))
 
-			# 5b. Query next path position & calculate velocity
-			if not nav_agent.is_navigation_finished():
-				var next_path_pos: Vector3 = nav_agent.get_next_path_position()
-				var horiz_vec: Vector3 = Vector3(next_path_pos.x - global_position.x, 0.0, next_path_pos.z - global_position.z)
+	# 5. Pipeline Step 2: Brain Decision
+	var current_action_enum: ActionTypes.Action = ActionTypes.Action.NONE
+	if _current_action_request != null:
+		current_action_enum = _current_action_request.action
 
-				if horiz_vec.length() > 0.05:
-					var dir: Vector3 = horiz_vec.normalized()
-					velocity.x = dir.x * move_speed
-					velocity.z = dir.z * move_speed
+	if brain:
+		_current_action_request = brain.decide_action(snapshot, get_state_string(), current_action_enum)
 
-					var target_rot: float = atan2(-dir.x, -dir.z)
-					rotation.y = lerp_angle(rotation.y, target_rot, delta * rotation_speed)
-				else:
-					velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
-					velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
-			else:
-				velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
-				velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
+	# 6. Pipeline Step 3 & 4: Action Execution via ActionController
+	if action_controller and _current_action_request != null:
+		action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
 
-	# 6. Apply physical movement
+	# 7. Physical movement
 	move_and_slide()
 	_last_slide_collision_count = get_slide_collision_count()
 
-func _change_state(new_state: State) -> void:
-	if current_state != new_state:
-		current_state = new_state
-		state_changed.emit(new_state)
-
 func get_state_string() -> String:
-	match current_state:
-		State.IDLE: return "IDLE"
-		State.FOLLOWING: return "FOLLOWING"
-	return "UNKNOWN"
+	if _current_action_request != null:
+		return ActionTypes.get_action_name(_current_action_request.action)
+	return "IDLE"
 
 func get_last_slide_collision_count() -> int:
 	return _last_slide_collision_count
@@ -129,3 +93,18 @@ func get_perception_snapshot() -> Dictionary:
 	if perception:
 		return perception.get_perception_snapshot()
 	return {}
+
+func get_brain_decision_string() -> String:
+	if _current_action_request != null:
+		return ActionTypes.get_action_name(_current_action_request.action)
+	return "IDLE"
+
+func get_execution_status_string() -> String:
+	if action_controller:
+		return action_controller.current_execution_status
+	return "IDLE"
+
+func get_event_log() -> Array[String]:
+	if action_controller:
+		return action_controller.get_event_log()
+	return []

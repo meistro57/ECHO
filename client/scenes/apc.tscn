@@ -1,7 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://e2f3g4h5i6j7"]
+[gd_scene load_steps=9 format=3 uid="uid://e2f3g4h5i6j7"]
 
 [ext_resource type="Script" path="res://scripts/apc/apc_controller.gd" id="1_apc"]
-[ext_resource type="Script" path="res://scripts/apc/apc_perception.gd" id="2_perception"]
+[ext_resource type="Script" path="res://scripts/apc/apc_brain.gd" id="2_brain"]
+[ext_resource type="Script" path="res://scripts/apc/action_controller.gd" id="3_action_ctrl"]
+[ext_resource type="Script" path="res://scripts/apc/apc_perception.gd" id="4_perception"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_apc"]
 radius = 0.4
@@ -21,6 +23,15 @@ size = Vector3(0.5, 0.15, 0.2)
 [node name="APC" type="CharacterBody3D"]
 script = ExtResource("1_apc")
 
+[node name="Brain" type="Node3D" parent="."]
+script = ExtResource("2_brain")
+
+[node name="ActionController" type="Node3D" parent="."]
+script = ExtResource("3_action_ctrl")
+
+[node name="Perception" type="Node3D" parent="."]
+script = ExtResource("4_perception")
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_apc")
 
@@ -34,6 +45,3 @@ mesh = SubResource("BoxMesh_visor")
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
 target_desired_distance = 2.0
-
-[node name="Perception" type="Node3D" parent="."]
-script = ExtResource("2_perception")

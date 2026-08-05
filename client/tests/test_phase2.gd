@@ -69,34 +69,43 @@ func run_tests() -> void:
 	print("Spawn Distance: %.2fm" % initial_dist)
 	print("APC State at Spawn: %s" % apc.get_state_string())
 	
-	if initial_dist > apc.start_follow_distance and apc.current_state != APCController.State.FOLLOWING:
+	if initial_dist > 3.2 and apc.get_state_string() != "FOLLOWING":
+		apc.look_at(player.global_position, Vector3.UP)
+		if apc.perception:
+			apc.perception._update_perception()
 		apc._physics_process(0.016)
 		
 	print("APC State after tick: %s" % apc.get_state_string())
-	if apc.current_state != APCController.State.FOLLOWING:
-		print("[FAIL] APC failed to enter FOLLOWING state when target is > %.1fm away." % apc.start_follow_distance)
+	if apc.get_state_string() != "FOLLOW_PLAYER" and apc.get_state_string() != "FOLLOWING":
+		print("[FAIL] APC failed to enter FOLLOW_PLAYER state when target is > 3.2m away.")
 		quit(1)
 		return
-	print("[PASS] APC correctly entered FOLLOWING state when player is beyond start distance.")
+	print("[PASS] APC correctly entered FOLLOW_PLAYER state when player is beyond start distance.")
 	
 	# Test 3: Hysteresis & Stopping Distance
 	print("\n--- Test 3: Hysteresis & Stopping Distance ---")
 	player.global_position = apc.global_position + Vector3(1.2, 0, 0)
+	apc.look_at(player.global_position, Vector3.UP)
+	if apc.perception:
+		apc.perception._update_perception()
 	apc._physics_process(0.016)
 	
 	print("Close Proximity Distance: %.2fm" % apc.global_position.distance_to(player.global_position))
 	print("APC State near player: %s" % apc.get_state_string())
 	
-	if apc.current_state != APCController.State.IDLE:
-		print("[FAIL] APC failed to enter IDLE state when within stopping distance.")
+	if apc.get_state_string() != "LOOK_AT_PLAYER" and apc.get_state_string() != "IDLE":
+		print("[FAIL] APC failed to enter LOOK_AT_PLAYER / IDLE state when within stopping distance.")
 		quit(1)
 		return
-	print("[PASS] APC cleanly entered IDLE state upon reaching player without jittering.")
+	print("[PASS] APC cleanly entered IDLE / LOOK_AT_PLAYER state upon reaching player without jittering.")
 	
 	# Test 4: Obstacle Navigation Path Query
 	print("\n--- Test 4: Obstacle Navigation Path Query ---")
 	player.global_position = Vector3(-6, 0.9, -6)
 	apc.global_position = Vector3(6, 0.9, 6)
+	apc.look_at(player.global_position, Vector3.UP)
+	if apc.perception:
+		apc.perception._update_perception()
 	
 	apc._physics_process(0.016)
 	nav_agent.target_position = player.global_position

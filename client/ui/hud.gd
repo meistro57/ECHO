@@ -3,6 +3,7 @@ extends Control
 
 @onready var phase_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PhaseLabel
 @onready var state_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/APCStateLabel
+@onready var brain_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/BrainLabel
 @onready var distance_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/DistanceLabel
 @onready var velocity_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/VelocityLabel
 @onready var real_vel_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RealVelocityLabel
@@ -11,13 +12,14 @@ extends Control
 @onready var nav_finished_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NavFinishedLabel
 @onready var player_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PlayerPercLabel
 @onready var redbox_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RedboxPercLabel
+@onready var event_log_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/EventLogLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
 var _apc_node: APCController
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 3: Structured APC Perception"
+		phase_label.text = "Phase 4: APC Action & Brain Pipeline"
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
@@ -30,8 +32,13 @@ func _process(_delta: float) -> void:
 			_apc_node = apcs[0] as APCController
 
 	if _apc_node:
+		var decision_str: String = _apc_node.get_brain_decision_string()
+		var exec_str: String = _apc_node.get_execution_status_string()
+
 		if state_label:
-			state_label.text = "APC State: " + _apc_node.get_state_string()
+			state_label.text = "APC Action: " + decision_str
+		if brain_label:
+			brain_label.text = "Brain Decision: %s | Exec: %s" % [decision_str, exec_str]
 		if distance_label and _apc_node.target:
 			var dist: float = _apc_node.global_position.distance_to(_apc_node.target.global_position)
 			distance_label.text = "Distance: %.2fm" % dist
@@ -51,6 +58,8 @@ func _process(_delta: float) -> void:
 		# Update Perception Debug Labels
 		if _apc_node.has_method("get_perception_snapshot"):
 			var snapshot: Dictionary = _apc_node.get_perception_snapshot()
+			var ts_str: String = "%.1fs" % float(snapshot.get("timestamp", 0.0))
+
 			if snapshot.has("human_player"):
 				var p_data: Dictionary = snapshot["human_player"]
 				if p_data.size() > 0 and player_perc_label:
@@ -60,7 +69,7 @@ func _process(_delta: float) -> void:
 					var p_los: String = "YES" if p_data.get("line_of_sight", false) else "NO"
 					var p_sec: Variant = p_data.get("seconds_since_last_seen", null)
 					var p_sec_str: String = "%.1fs" % float(p_sec) if p_sec != null else "N/A"
-					player_perc_label.text = "Player Vis: %s | Dist: %.1fm | FOV: %s | LOS: %s | LastSeen: %s" % [p_vis, p_dist, p_fov, p_los, p_sec_str]
+					player_perc_label.text = "Player Vis: %s | Dist: %.1fm | FOV: %s | LOS: %s | LastSeen: %s (TS: %s)" % [p_vis, p_dist, p_fov, p_los, p_sec_str, ts_str]
 
 			if snapshot.has("nearby_objects"):
 				var objs: Array = snapshot["nearby_objects"]
@@ -74,3 +83,12 @@ func _process(_delta: float) -> void:
 							var r_sec: Variant = obj.get("seconds_since_last_seen", null)
 							var r_sec_str: String = "%.1fs" % float(r_sec) if r_sec != null else "N/A"
 							redbox_perc_label.text = "Red Box Vis: %s | Dist: %.1fm | FOV: %s | LOS: %s | LastSeen: %s" % [r_vis, r_dist, r_fov, r_los, r_sec_str]
+
+		# Update Event Log Label
+		if event_log_label and _apc_node.has_method("get_event_log"):
+			var log_entries: Array[String] = _apc_node.get_event_log()
+			var display_entries: Array[String] = []
+			var limit: int = min(4, log_entries.size()) # Show top 4 entries in HUD UI panel
+			for i in range(limit):
+				display_entries.append(log_entries[i])
+			event_log_label.text = "Event Log:\n" + ("\n".join(display_entries) if display_entries.size() > 0 else "None")

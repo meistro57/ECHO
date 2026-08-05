@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 440.0
-offset_bottom = 400.0
+offset_right = 460.0
+offset_bottom = 480.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -53,13 +53,19 @@ text = "ECHO Prototype"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 3: Structured APC Perception"
+text = "Phase 4: APC Action & Brain Pipeline"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.8, 0.2, 1)
 theme_override_font_sizes/font_size = 14
-text = "APC State: IDLE"
+text = "APC Action: IDLE"
+
+[node name="BrainLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.5, 0.9, 1)
+theme_override_font_sizes/font_size = 12
+text = "Brain Decision: IDLE | Exec: EXECUTING"
 
 [node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -106,6 +112,17 @@ text = "Player Vis: NO | Dist: 0.0m | FOV: NO | LOS: NO | LastSeen: N/A"
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Red Box Vis: NO | Dist: 0.0m | FOV: NO | LOS: NO | LastSeen: N/A"
+
+[node name="EventLogHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Event Log (Max 20):"
+
+[node name="EventLogLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Event Log: None"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
