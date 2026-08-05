@@ -16,6 +16,9 @@ This directory explains why ECHO exists, how its systems fit together, and how f
 - [`APC_LIFECYCLE.md`](APC_LIFECYCLE.md): spawn, readiness, perception, decision, execution, persistence, and shutdown
 - [`ACTION_SYSTEM.md`](ACTION_SYSTEM.md): legal actions and controller authority
 - [`MEMORY.md`](MEMORY.md): grounded persistent memory and privacy boundaries
+- [`WORLD_STATE_PERSISTENCE.md`](WORLD_STATE_PERSISTENCE.md): selective world state persistence across sessions
+- [`SAVE_FILE_SCHEMA.md`](SAVE_FILE_SCHEMA.md): world state save file format and validation
+- [`WORLD_STATE_RECOVERY.md`](WORLD_STATE_RECOVERY.md): corruption recovery, backups, and safe restoration
 
 ## Contribution
 

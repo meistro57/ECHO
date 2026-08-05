@@ -20,6 +20,10 @@ extends Control
 @onready var memory_records_list: ItemList = $MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryRecordsList
 @onready var delete_memory_button: Button = $MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryButtons/DeleteMemoryButton
 @onready var clear_memory_button: Button = $MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryButtons/ClearMemoryButton
+@onready var world_state_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateStatusLabel
+@onready var world_state_detail_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateDetailLabel
+@onready var save_world_button: Button = $MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateButtons/SaveWorldButton
+@onready var reset_world_button: Button = $MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateButtons/ResetWorldButton
 @onready var event_log_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/EventLogLabel
 @onready var ai_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIStatusLabel
 @onready var ai_detail_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIDetailLabel
@@ -34,16 +38,19 @@ var _apc_node: APCController
 var _ai_service: AIService
 var _conv_ctrl: ConversationController
 var _mem_service: MemoryService
+var _world_service: WorldStateService
 
 var is_command_entry_open: bool = false
 var clear_memory_confirm_armed: bool = false
 var clear_memory_confirm_timer: float = 0.0
 var last_selected_memory_id: String = ""
 var memory_refresh_timer: float = 0.0
+var reset_world_confirm_armed: bool = false
+var reset_world_confirm_timer: float = 0.0
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 9: Explicit Persistent Memory & Experience Recall"
+		phase_label.text = "Phase 10: Persistent World State & Safe Restoration"
 
 	if command_entry_container:
 		command_entry_container.visible = false
@@ -57,6 +64,10 @@ func _ready() -> void:
 		clear_memory_button.pressed.connect(_on_clear_memory_pressed)
 	if memory_records_list and not memory_records_list.item_selected.is_connected(_on_memory_item_selected):
 		memory_records_list.item_selected.connect(_on_memory_item_selected)
+	if save_world_button and not save_world_button.pressed.is_connected(_on_save_world_pressed):
+		save_world_button.pressed.connect(_on_save_world_pressed)
+	if reset_world_button and not reset_world_button.pressed.is_connected(_on_reset_world_pressed):
+		reset_world_button.pressed.connect(_on_reset_world_pressed)
 
 func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
@@ -97,6 +108,24 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("clear_memory_debug"):
 		_request_clear_memory_with_confirmation()
 
+	if _world_service == null:
+		var worlds: Array[Node] = get_tree().get_nodes_in_group("world_state_service")
+		if worlds.size() > 0 and worlds[0] is WorldStateService:
+			_world_service = worlds[0] as WorldStateService
+
+	if Input.is_action_just_pressed("save_world_state"):
+		_save_world_now()
+
+	if Input.is_action_just_pressed("reset_world_state_debug"):
+		_request_reset_world_with_confirmation()
+
+	if reset_world_confirm_armed:
+		reset_world_confirm_timer -= delta
+		if reset_world_confirm_timer <= 0.0:
+			reset_world_confirm_armed = false
+			if reset_world_button:
+				reset_world_button.text = "Reset World (Confirm)"
+
 	if clear_memory_confirm_armed:
 		clear_memory_confirm_timer -= delta
 		if clear_memory_confirm_timer <= 0.0:
@@ -106,6 +135,7 @@ func _process(delta: float) -> void:
 
 	_update_subtitles_and_speech()
 	_update_memory_section(delta)
+	_update_world_state_section()
 	_update_apc_debug_labels()
 	_update_ai_labels()
 
@@ -204,6 +234,56 @@ func _request_clear_memory_with_confirmation() -> void:
 	if clear_memory_button:
 		clear_memory_button.text = "Clear All (Confirm)"
 	_refresh_memory_list()
+
+func _update_world_state_section() -> void:
+	if _world_service == null:
+		return
+	if world_state_status_label:
+		world_state_status_label.text = "WS Enabled: %s | World: %s | Schema: %d | Entities: %d" % [
+			"YES" if _world_service.world_state_enabled else "NO",
+			_world_service.world_id,
+			_world_service.schema_version,
+			_world_service.get_total_registered_count()
+		]
+	if world_state_detail_label:
+		var last_save_str: String = "Never"
+		var last_load_str: String = "Never"
+		if _world_service.last_save_unix > 0.0:
+			last_save_str = Time.get_datetime_string_from_unix_time(_world_service.last_save_unix, true)
+		if _world_service.last_load_unix > 0.0:
+			last_load_str = Time.get_datetime_string_from_unix_time(_world_service.last_load_unix, true)
+		world_state_detail_label.text = "Last Save: %s | Last Load: %s | Dirty: %s | Autosave: %s | Err: %s" % [
+			last_save_str,
+			last_load_str,
+			"YES" if _world_service.dirty else "NO",
+			"PENDING" if _world_service.autosave_pending else ("ON" if _world_service.autosave_enabled else "OFF"),
+			_world_service.last_error
+		]
+
+func _on_save_world_pressed() -> void:
+	_save_world_now()
+
+func _save_world_now() -> void:
+	if _world_service:
+		_world_service.save_world_state()
+
+func _on_reset_world_pressed() -> void:
+	_request_reset_world_with_confirmation()
+
+func _request_reset_world_with_confirmation() -> void:
+	if _world_service == null:
+		return
+	if not reset_world_confirm_armed:
+		reset_world_confirm_armed = true
+		reset_world_confirm_timer = 3.0
+		if reset_world_button:
+			reset_world_button.text = "Press Again to Confirm"
+		return
+	reset_world_confirm_armed = false
+	reset_world_confirm_timer = 0.0
+	_world_service.reset_world_state()
+	if reset_world_button:
+		reset_world_button.text = "Reset World (Confirm)"
 
 func _update_apc_debug_labels() -> void:
 	if _apc_node == null:

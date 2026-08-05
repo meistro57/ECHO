@@ -27,13 +27,13 @@ Core principles:
 - Phase 7: Object interaction
 - Phase 8: Natural communication
 - Phase 9: Persistent memory
-- Phase 10: Persistent world
+- Phase 10: Persistent world (selective, validated world state in `user://echo_world_state.json` with backup recovery)
 
 ## Current Architecture
 
 World → Perception → Brain → Legal Action → Action Controller → Interaction → Physics → World
 
-Memory and AI support the loop but never bypass it.
+Memory (Phase 9) and world state persistence (Phase 10) support the loop but never bypass it. Memory stores grounded experiences; world state restores registered entities and validated flags across sessions.
 
 ## Future Roadmap
 

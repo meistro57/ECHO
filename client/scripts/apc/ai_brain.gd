@@ -25,6 +25,12 @@ signal ai_task_accepted(task_req: TaskRequest)
 signal ai_decision_rejected(error_msg: String)
 
 func _ready() -> void:
+	var env_interval: String = OS.get_environment("ECHO_AI_DECISION_INTERVAL_SECONDS").strip_edges()
+	if not env_interval.is_empty() and env_interval.is_valid_float():
+		decision_interval_seconds = max(0.1, env_interval.to_float())
+	var env_event_interval: String = OS.get_environment("ECHO_AI_MIN_EVENT_INTERVAL_SECONDS").strip_edges()
+	if not env_event_interval.is_empty() and env_event_interval.is_valid_float():
+		min_event_interval_seconds = max(0.0, env_event_interval.to_float())
 	call_deferred("_connect_ai_service")
 
 func _connect_ai_service() -> void:

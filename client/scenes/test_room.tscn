@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://f3g4h5i6j7k8"]
+[gd_scene load_steps=18 format=3 uid="uid://f3g4h5i6j7k8"]
 
 [ext_resource type="Script" path="res://scripts/test_room.gd" id="1_room"]
 [ext_resource type="PackedScene" uid="uid://d1e2f3g4h5i6" path="res://scenes/player.tscn" id="2_player"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/audio/speech_service.gd" id="7_speech_service"]
 [ext_resource type="Script" path="res://scripts/conversation/conversation_controller.gd" id="8_conv_ctrl"]
 [ext_resource type="Script" path="res://scripts/memory/memory_service.gd" id="9_mem_service"]
+[ext_resource type="Script" path="res://scripts/world_state/world_state_service.gd" id="10_world_state"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_room"]
 vertices = PackedVector3Array(-9.5, 0.1, -9.5, -9.5, 0.1, 9.5, 9.5, 0.1, 9.5, 9.5, 0.1, -9.5)
@@ -136,3 +137,6 @@ script = ExtResource("8_conv_ctrl")
 
 [node name="MemoryService" type="Node" parent="."]
 script = ExtResource("9_mem_service")
+
+[node name="WorldStateService" type="Node" parent="."]
+script = ExtResource("10_world_state")

@@ -20,9 +20,9 @@ ECHO is an experimental framework exploring a new paradigm in game AI:
 
 ---
 
-## 🚀 Current Project Status: Phase 9 Completed
+## 🚀 Current Project Status: Phase 10 Completed
 
-ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete cognitive, physical, multimodal speech, and bounded persistent-memory pipeline:
+ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete cognitive, physical, multimodal speech, bounded persistent-memory, and persistent world-state pipeline:
 
 ```
 Microphone Capture (Push-To-Talk 'V') / Typed Console ('Enter')
@@ -85,8 +85,12 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
    - Stores bounded, structured local memory records for trusted task outcomes and explicit player memory commands.
    - Supports session-aware recall, targeted forgetting, pruning by importance, and corruption-safe recovery.
 
-8. **Live Debug HUD & Subtitles (F1 / F3 / F4 / F5 / V / Enter / F6 / F7)**:
-   - Displays APC State, Brain Mode, AI Status, Speech Status, Subtitles Overlay, Task Status, Held Object, Perception metrics, and memory diagnostics.
+8. **Persistent World State (`WorldStateService`, `PersistentEntity`, `JSONWorldStateStore`) [Phase 10]**:
+   - Selectively persists registered entities (Red Box position, orientation, held state) and validated world flags to `user://echo_world_state.json`.
+   - Atomic saves with a last-known-good backup, schema versioning, bounds/floor/collision validation, and safe restoration.
+
+9. **Live Debug HUD & Subtitles (F1 / F3 / F4 / F5 / V / Enter / F6 / F7 / F8 / F9)**:
+   - Displays APC State, Brain Mode, AI Status, Speech Status, Subtitles Overlay, Task Status, Held Object, Perception metrics, memory diagnostics, and world-state diagnostics.
 
 ---
 
@@ -106,6 +110,8 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 | **Toggle Brain Mode** | `F4` (DETERMINISTIC / AI) |
 | **Test Bring Red Box Task** | `F5` |
 | **Clear All Memory (Confirm)** | `F7` |
+| **Save World State** | `F8` |
+| **Reset World State (Confirm)** | `F9` |
 
 ---
 
@@ -190,6 +196,16 @@ ECHO/
 │   │   │   └── providers/
 │   │   │       ├── json_memory_store.gd # Persistent local JSON memory store
 │   │   │       └── mock_memory_store.gd # Test memory store provider
+│   │   ├── world_state/           # Phase 10 persistent world state
+│   │   │   ├── world_state_service.gd   # World state orchestration and autosave
+│   │   │   ├── world_state_registry.gd  # Registered persistent entity tracking
+│   │   │   ├── world_state_record.gd    # Typed world state record schema
+│   │   │   ├── persistent_entity.gd     # Reusable persistence component
+│   │   │   ├── world_state_migrator.gd  # Save schema versioning
+│   │   │   ├── world_state_store.gd     # World state store interface
+│   │   │   └── providers/
+│   │   │       ├── json_world_state_store.gd # Atomic JSON save with backup
+│   │   │       └── mock_world_state_store.gd # Test store provider
 │   │   └── test_room.gd              # NavigationMesh baking & scene setup script
 │   ├── ui/                     # UI overlays
 │   │   ├── hud.tscn            # Debug HUD overlay scene
@@ -203,7 +219,8 @@ ECHO/
 │       ├── test_phase6.gd      # Phase 6 AI decision bridge & validation test
 │       ├── test_phase7.gd      # Phase 7 object interaction & task execution test
 │       ├── test_phase8.gd      # Phase 8 multimodal speech & grounding test
-│       └── test_phase9.gd      # Phase 9 persistent memory test
+│       ├── test_phase9.gd      # Phase 9 persistent memory test
+│       └── test_phase10.gd     # Phase 10 persistent world state test
 ├── docs/                       # Project Documentation
 │   ├── VISION.md               # Core philosophy & vision
 │   ├── ARCHITECTURE.md         # Component & cognitive pipeline architecture
@@ -216,7 +233,10 @@ ECHO/
 │   ├── COMMAND_GROUNDING.md    # Phase 8 command grounding architecture
 │   ├── SHARED_ATTENTION.md     # Phase 8 shared attention architecture
 │   ├── MEMORY_SYSTEM.md        # Phase 9 memory architecture and query rules
-│   └── MEMORY_PRIVACY.md       # Phase 9 memory privacy and controls
+│   ├── MEMORY_PRIVACY.md       # Phase 9 memory privacy and controls
+│   ├── WORLD_STATE_PERSISTENCE.md # Phase 10 world state architecture
+│   ├── SAVE_FILE_SCHEMA.md     # Phase 10 save file format
+│   └── WORLD_STATE_RECOVERY.md # Phase 10 recovery and validation
 ├── static/                     # Repository branding & media
 │   └── images/
 │       └── ECHO_LOGO.png       # Official ECHO framework logo
@@ -285,16 +305,20 @@ godot --headless --path client/ -s tests/test_phase8.gd
 
 # Phase 9 Test (Persistent Memory)
 godot --headless --path client/ -s tests/test_phase9.gd
+
+# Phase 10 Test (Persistent World State)
+godot --headless --path client/ -s tests/test_phase10.gd
 ```
 
 ---
 
-## ⚠️ Scope & Known Limitations (Phase 9 Baseline)
+## ⚠️ Scope & Known Limitations (Phase 10 Baseline)
 
 - **Single Object Target**: Currently configured for one portable object (`RedBox`).
 - **Memory Is Intentionally Bounded**: Long free-form transcript storage and unrestricted autonomous memory growth are intentionally disabled.
 - **Local-Only Memory**: Persistent memory is stored at `user://echo_memory.json` and can be cleared from the HUD debug section.
-- **Statement**: *No combat, multiplayer, emotional simulation, autonomous goals, embeddings, or vector database feature was added.*
+- **Selective World Persistence**: Only registered entities and validated flags persist (Red Box, optional APC/player positions). No SceneTree serialization, no runtime save files in the repository.
+- **Statement**: *No combat, multiplayer, emotional simulation, autonomous goals, embeddings, vector database, crafting, general inventory, or unrestricted save-state serialization feature was added.*
 
 ---
 

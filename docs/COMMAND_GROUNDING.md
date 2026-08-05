@@ -20,6 +20,17 @@ The `CommandGrounder` is responsible for parsing raw human natural language (spo
 | "Drop the box", "Drop it" | `ActionRequest(DROP_HELD_OBJECT)` | Validates APC holds an object |
 | "Give me the box" | `ActionRequest(GIVE_OBJECT_TO_PLAYER)` | Validates APC holds an object |
 | "Cancel", "Cancel task" | Cancel Signal | Cancels active task & speech playback |
+| "Bring me that", "Bring it to me" | `TaskRequest(BRING_OBJECT_TO_PLAYER)` | Resolved via player gaze aim target or one-turn clarification |
+| "What did you help me with last time?" | Memory Query | Recalls prior-session task memories |
+| "Did you bring me the red box before?" | Memory Query | Entity-scoped recall |
+| "What do you remember about the red box?" / "...about me?" | Memory Query | Entity-scoped recall |
+| "Remember that ...", "Remember I ...", "My preference is ..." | Memory Store | Stored as `player_statement` |
+| "Forget ..." | Memory Forget | Confirms when ambiguous |
+| "Clear all memory" | Memory Clear | Requires explicit confirmation |
+
+## Execution
+
+Grounded `ActionRequest`s are dispatched to the APC and executed physically (follow/move/look/wait via `ActionController`; pick up/drop/give via `InteractionController`). Grounded `TaskRequest`s start a trusted multi-step task. Memory intents are handled before ordinary action grounding and never trigger movement by themselves.
 
 ---
 

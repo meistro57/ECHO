@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/objects/red_box.gd" id="1_redbox"]
+[ext_resource type="Script" path="res://scripts/world_state/persistent_entity.gd" id="2_persistent"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_redbox"]
 size = Vector3(0.8, 0.8, 0.8)
@@ -20,3 +21,9 @@ shape = SubResource("BoxShape3D_redbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("BoxMesh_redbox")
+
+[node name="WorldState" type="Node" parent="."]
+script = ExtResource("2_persistent")
+persistent_id = "red_box"
+entity_type = "portable_object"
+

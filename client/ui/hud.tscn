@@ -53,7 +53,7 @@ text = "ECHO Framework"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 9: Explicit Persistent Memory & Experience Recall"
+text = "Phase 10: Persistent World State & Safe Restoration"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -116,6 +116,34 @@ text = "Delete Selected"
 [node name="ClearMemoryButton" type="Button" parent="MarginContainer/Panel/MarginContainer/VBoxContainer/MemoryButtons"]
 layout_mode = 2
 text = "Clear All (Confirm)"
+
+[node name="WorldStateHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.8, 0.3, 1)
+theme_override_font_sizes/font_size = 12
+text = "World State Persistence:"
+
+[node name="WorldStateStatusLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+theme_override_font_sizes/font_size = 11
+text = "WS Enabled: YES | World: echo_test_room | Schema: 1 | Entities: 0"
+
+[node name="WorldStateDetailLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Last Save: Never | Last Load: Never | Dirty: NO | Autosave: NO | Err: None"
+
+[node name="WorldStateButtons" type="HBoxContainer" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SaveWorldButton" type="Button" parent="MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateButtons"]
+layout_mode = 2
+text = "Save World (F8)"
+
+[node name="ResetWorldButton" type="Button" parent="MarginContainer/Panel/MarginContainer/VBoxContainer/WorldStateButtons"]
+layout_mode = 2
+text = "Reset World (Confirm)"
 
 [node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -204,7 +232,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "WASD: Move | Mouse: Look | Space: Jump | Escape: Mouse
 F1: Toggle Debug HUD | F3: Test AI Connectivity | F4: Toggle Brain Mode | F5: Test Bring Task
-V: Push-To-Talk (Hold) | Enter: Typed Text Command | F6: Cancel Request | F7: Clear Memory (Confirm)"
+V: Push-To-Talk (Hold) | Enter: Typed Text Command | F6: Cancel | F7: Clear Memory (Confirm) | F8: Save World | F9: Reset World (Confirm)"
 
 [node name="SubtitlePanel" type="PanelContainer" parent="."]
 visible = false
