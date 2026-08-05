@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://f3g4h5i6j7k8"]
+[gd_scene load_steps=16 format=3 uid="uid://f3g4h5i6j7k8"]
 
 [ext_resource type="Script" path="res://scripts/test_room.gd" id="1_room"]
 [ext_resource type="PackedScene" uid="uid://d1e2f3g4h5i6" path="res://scenes/player.tscn" id="2_player"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://c7m8n9o0p1q2" path="res://ui/hud.tscn" id="4_hud"]
 [ext_resource type="PackedScene" path="res://scenes/objects/red_box.tscn" id="5_redbox"]
 [ext_resource type="Script" path="res://scripts/ai/ai_service.gd" id="6_aiservice"]
+[ext_resource type="Script" path="res://scripts/audio/speech_service.gd" id="7_speech_service"]
+[ext_resource type="Script" path="res://scripts/conversation/conversation_controller.gd" id="8_conv_ctrl"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_room"]
 vertices = PackedVector3Array(-9.5, 0.1, -9.5, -9.5, 0.1, 9.5, 9.5, 0.1, 9.5, 9.5, 0.1, -9.5)
@@ -124,3 +126,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1, -4)
 script = ExtResource("6_aiservice")
 
 [node name="HTTPRequest" type="HTTPRequest" parent="AIService"]
+
+[node name="SpeechService" type="Node" parent="."]
+script = ExtResource("7_speech_service")
+
+[node name="ConversationController" type="Node" parent="."]
+script = ExtResource("8_conv_ctrl")

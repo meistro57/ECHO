@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 560.0
-offset_bottom = 590.0
+offset_right = 580.0
+offset_bottom = 630.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -53,7 +53,7 @@ text = "ECHO Prototype"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 7: Physical Object Interaction & Task Execution"
+text = "Phase 8: Multimodal Speech, Grounding, & Natural Language Execution"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -72,6 +72,12 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 11
 text = "Held Object: None | Task Status: IDLE | Step: None | Task Err: None"
+
+[node name="SpeechStatusLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.4, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Conv State: IDLE | PTT: IDLE | STT: mock_stt | TTS: mock_tts"
 
 [node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -159,5 +165,71 @@ text = "Controls:"
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "WASD: Move | Mouse: Look | Space: Jump | Escape: Mouse
-F1: Toggle Debug HUD | F3: Test AI Connectivity
-F4: Toggle Brain Mode | F5: Test Bring Red Box Task"
+F1: Toggle Debug HUD | F3: Test AI Connectivity | F4: Toggle Brain Mode | F5: Test Bring Task
+V: Push-To-Talk (Hold) | Enter: Typed Text Command | F6: Cancel Request / Task"
+
+[node name="SubtitlePanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -120.0
+offset_right = 300.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="SubtitlePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+mouse_filter = 2
+
+[node name="SubtitleLabel" type="Label" parent="SubtitlePanel/MarginContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Human: \"Hello\"\nAPC: \"Understood.\""
+horizontal_alignment = 1
+
+[node name="CommandEntryContainer" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -350.0
+offset_top = -160.0
+offset_right = 350.0
+offset_bottom = -110.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="CommandEntryContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CommandEntryContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="PromptLabel" type="Label" parent="CommandEntryContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+text = "Command: "
+
+[node name="CommandLineEdit" type="LineEdit" parent="CommandEntryContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type request (e.g. bring me the red box) and press Enter..."

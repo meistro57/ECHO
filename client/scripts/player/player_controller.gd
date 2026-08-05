@@ -11,9 +11,22 @@ extends CharacterBody3D
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var is_mouse_captured: bool = true
 
+var _attention_node: PlayerAttention
+
 func _ready() -> void:
 	add_to_group("human_player")
 	set_mouse_capture(true)
+	
+	_attention_node = get_node_or_null("PlayerAttention") as PlayerAttention
+	if _attention_node == null:
+		_attention_node = PlayerAttention.new()
+		_attention_node.name = "PlayerAttention"
+		add_child(_attention_node)
+
+func get_attention_snapshot() -> Dictionary:
+	if _attention_node:
+		return _attention_node.get_attention_snapshot()
+	return {}
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("release_mouse"):

@@ -13,31 +13,52 @@ extends Control
 @onready var player_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PlayerPercLabel
 @onready var redbox_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RedboxPercLabel
 @onready var task_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/TaskStatusLabel
+@onready var speech_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/SpeechStatusLabel
 @onready var event_log_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/EventLogLabel
 @onready var ai_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIStatusLabel
 @onready var ai_detail_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIDetailLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
+@onready var subtitle_panel: PanelContainer = $SubtitlePanel
+@onready var subtitle_label: Label = $SubtitlePanel/MarginContainer/SubtitleLabel
+@onready var command_entry_container: PanelContainer = $CommandEntryContainer
+@onready var command_line_edit: LineEdit = $CommandEntryContainer/MarginContainer/HBoxContainer/CommandLineEdit
+
 var _apc_node: APCController
 var _ai_service: AIService
+var _conv_ctrl: ConversationController
+var is_command_entry_open: bool = false
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 7: Physical Object Interaction & Task Execution"
+		phase_label.text = "Phase 8: Multimodal Speech, Grounding, & Natural Language Execution"
+
+	if command_entry_container:
+		command_entry_container.visible = false
+
+	if command_line_edit:
+		command_line_edit.text_submitted.connect(_on_command_submitted)
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
 		if margin_container:
 			margin_container.visible = not margin_container.visible
 
+	if _conv_ctrl == null:
+		var convs: Array[Node] = get_tree().get_nodes_in_group("conversation_controller")
+		if convs.size() > 0 and convs[0] is ConversationController:
+			_conv_ctrl = convs[0] as ConversationController
+
+	# Handle opening text command console (Enter)
+	if Input.is_action_just_pressed("open_text_command") and not is_command_entry_open:
+		open_command_entry()
+	elif is_command_entry_open and Input.is_action_just_pressed("release_mouse"):
+		close_command_entry()
+
 	if _ai_service == null:
 		var services: Array[Node] = get_tree().get_nodes_in_group("ai_service")
 		if services.size() > 0 and services[0] is AIService:
 			_ai_service = services[0] as AIService
-		else:
-			var found: Node = get_tree().root.find_child("AIService", true, false)
-			if found is AIService:
-				_ai_service = found as AIService
 
 	if Input.is_action_just_pressed("test_ai_connection"):
 		if _ai_service:
@@ -52,6 +73,27 @@ func _process(_delta: float) -> void:
 		if _apc_node:
 			var new_mode_str: String = _apc_node.toggle_brain_mode()
 			print("[HUD] Brain mode toggled to: ", new_mode_str)
+
+	# Update Subtitles Overlay & Speech Status
+	if _conv_ctrl:
+		var h_transcript: String = _conv_ctrl.latest_human_transcript
+		var a_response: String = _conv_ctrl.latest_apc_response_text
+		var conv_state: String = _conv_ctrl.get_state_string()
+
+		if subtitle_label and subtitle_panel:
+			if not h_transcript.is_empty() or not a_response.is_empty():
+				subtitle_panel.visible = true
+				subtitle_label.text = "Human: \"%s\"\nAPC: \"%s\"" % [h_transcript, a_response]
+			else:
+				subtitle_panel.visible = false
+
+		if speech_status_label:
+			speech_status_label.text = "Conv State: %s | PTT: %s | STT: %s | TTS: %s" % [
+				conv_state,
+				"RECORDING" if _conv_ctrl.ptt_active else "IDLE",
+				_conv_ctrl.speech_service.get_stt_provider_name() if _conv_ctrl.speech_service else "mock",
+				_conv_ctrl.speech_service.get_tts_provider_name() if _conv_ctrl.speech_service else "mock"
+			]
 
 	if _apc_node:
 		var decision_str: String = _apc_node.get_brain_decision_string()
@@ -176,3 +218,24 @@ func _process(_delta: float) -> void:
 				]
 			else:
 				ai_detail_label.text = "Last Latency: N/A | HTTP Code: N/A | Tokens: N/A | Error: None"
+
+func open_command_entry() -> void:
+	is_command_entry_open = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if command_entry_container:
+		command_entry_container.visible = true
+	if command_line_edit:
+		command_line_edit.clear()
+		command_line_edit.grab_focus()
+
+func close_command_entry() -> void:
+	is_command_entry_open = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if command_entry_container:
+		command_entry_container.visible = false
+
+func _on_command_submitted(new_text: String) -> void:
+	var trimmed: String = new_text.strip_edges()
+	close_command_entry()
+	if not trimmed.is_empty() and _conv_ctrl:
+		_conv_ctrl.process_text_command(trimmed)

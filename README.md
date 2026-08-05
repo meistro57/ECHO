@@ -20,14 +20,20 @@ ECHO is an experimental framework exploring a new paradigm in game AI:
 
 ---
 
-## 🚀 Current Project Status: Phase 7 Completed
+## 🚀 Current Project Status: Phase 8 Completed
 
-ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete 6-tier cognitive and physical architecture pipeline with deterministic fallback:
+ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete 7-tier cognitive, physical, and multimodal speech architecture pipeline:
 
 ```
-Perception (APCPerception)
+Microphone Capture (Push-To-Talk 'V') / Typed Console ('Enter')
        │
        ▼
+Speech-to-Text Provider (Mock / OpenAI-Compatible / Local)
+       │
+       ▼ (Recognized Transcript)
+CommandGrounder ◄── PlayerAttention Gaze Raycast ("that" / "it")
+       │
+       ▼ (Grounded ActionRequest / TaskRequest)
    APCBrain ───────────────► Mode Selection (DETERMINISTIC / AI)
        │                                     │
        ├─────────────────┬───────────────────┘
@@ -50,33 +56,33 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
                                     CharacterBody3D            CarrySocket / RedBox
 ```
 
-### 🧠 Cognitive & Physical Architecture Components
+### 🧠 Cognitive, Physical & Speech Architecture Components
 
-1. **Structured Perception (`APCPerception`) [Phase 3]**:
+1. **Multimodal Speech Layer & Audio Service (`SpeechService`, `AudioCaptureService`) [Phase 8]**:
+   - Push-to-talk microphone capture (**V** key) with configurable bounds (`ECHO_PTT_MIN_SECONDS` = 0.25s, `ECHO_PTT_MAX_SECONDS` = 20s).
+   - Provider-neutral STT and TTS interfaces supporting `Mock`, `OpenAICompatible`, and `Local` providers.
+
+2. **Command Grounding & Shared Attention (`CommandGrounder`, `PlayerAttention`) [Phase 8]**:
+   - Grounding rules parsing spoken transcripts ("follow me", "bring me the red box", "drop it", "wait").
+   - Gaze raycasting resolving relative references ("bring me that") using center-screen aim vector.
+   - One-turn clarification flow ("Which object do you mean?").
+
+3. **Structured Perception (`APCPerception`) [Phase 3]**:
    - Engine-native non-omniscient sensing evaluating distance (`max_view_distance` = 15.0m), field of view (`field_of_view_degrees` = 110.0°), and physics raycast line-of-sight occlusion.
-   - Short-term memory tracking last-seen position and elapsed seconds before expiring (`memory_duration` = 3.0s).
+   - Short-term memory tracking last-seen position (`memory_duration` = 3.0s).
 
-2. **APC Brain (`APCBrain`) & Dual Modes [Phase 4 / Phase 6]**:
+4. **APC Brain (`APCBrain`) & Dual Modes [Phase 4 / Phase 6]**:
    - Orchestrates decision-making between `DeterministicBrain` and `AIBrain`.
-   - **Deterministic Mode**: Rule-based state machine (`FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `WAIT`, `IDLE`).
-   - **AI Mode**: Sends compact perception context to OpenRouter/DeepSeek via `submit_apc_action` or `submit_apc_task` tool schemas.
    - **Automatic Fallback**: Any network failure, rate limit, timeout, or validation rejection instantly falls back to `DeterministicBrain`.
 
-3. **AI Decision Adapter (`AIDecisionAdapter`) [Phase 6 / Phase 7]**:
-   - Strict validation pipeline inspecting returned tool calls (`submit_apc_action` and `submit_apc_task`).
-   - Enforces allowed action enums (`IDLE`, `WAIT`, `FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `LOOK_AT_OBJECT`, `MOVE_TO_OBJECT`, `PICK_UP_OBJECT`, `DROP_HELD_OBJECT`, `GIVE_OBJECT_TO_PLAYER`), target ID existence, target type rules, and duration limits.
-   - Rejects raw model step injection attempts, invented targets, code execution attempts, file paths, and shell commands.
-
-4. **Physical Object Interaction (`InteractionController` & `CarrySocket`) [Phase 7]**:
+5. **Physical Object Interaction (`InteractionController` & `CarrySocket`) [Phase 7]**:
    - Sole authority for object pickup, carry socket attachment, ground placement raycasting, and giving objects to the player.
-   - Preserves object identity and disables collision shapes while held.
 
-5. **Sequential Task Execution (`TaskController`) [Phase 7]**:
+6. **Sequential Task Execution (`TaskController`) [Phase 7]**:
    - Executes multi-step trusted tasks (`BRING_OBJECT_TO_PLAYER`).
-   - Expands tasks into trusted steps (`MOVE_TO_OBJECT` -> `PICK_UP_OBJECT` -> `FOLLOW_PLAYER` -> `GIVE_OBJECT_TO_PLAYER`).
 
-6. **Live Debug HUD (F1 / F3 / F4 / F5)**:
-   - Displays APC State, Brain Mode, AI Status, Task Status, Held Object, Latency, Token usage, Perception metrics, and Event Log.
+7. **Live Debug HUD & Subtitles (F1 / F3 / F4 / F5 / V / Enter / F6)**:
+   - Displays APC State, Brain Mode, AI Status, Speech Status, Subtitles Overlay, Task Status, Held Object, Perception metrics, and Event Log.
 
 ---
 
@@ -88,10 +94,21 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 | **Look Around** | `Mouse` |
 | **Jump** | `Space` |
 | **Release / Recapture Mouse** | `Escape` or Left Click |
+| **Push-To-Talk (Hold)** | `V` |
+| **Open Typed Command Console** | `Enter` |
+| **Cancel Request / Task** | `F6` |
 | **Toggle Debug HUD** | `F1` |
 | **Test AI Connectivity** | `F3` |
 | **Toggle Brain Mode** | `F4` (DETERMINISTIC / AI) |
 | **Test Bring Red Box Task** | `F5` |
+
+---
+
+## 🛡️ Privacy & Speech Safety Statement
+
+- **Push-to-Talk Only**: The microphone records **only** while holding physical key **V** (`push_to_talk`). ECHO never listens continuously or records in the background.
+- **Zero Permanent Audio Retention**: Audio samples reside strictly in runtime RAM memory (`AudioBuffer`) and are cleared immediately after transcription. No audio is saved to disk or committed to repository.
+- **Offline / Local Operation**: Private, offline speech processing is fully supported using `ECHO_STT_PROVIDER=local` and `ECHO_TTS_PROVIDER=local`.
 
 ---
 
@@ -110,7 +127,8 @@ ECHO/
 │   │       └── red_box.tscn    # Perceivable Red Box object
 │   ├── scripts/                # GDScript files (.gd)
 │   │   ├── player/
-│   │   │   └── player_controller.gd  # Human player movement & camera script
+│   │   │   ├── player_controller.gd  # Human player movement & camera script
+│   │   │   └── player_attention.gd   # Player gaze raycast & attention snapshot script
 │   │   ├── apc/
 │   │   │   ├── apc_controller.gd     # APC root orchestration script
 │   │   │   ├── apc_brain.gd          # Dual-mode brain orchestrator
@@ -125,6 +143,28 @@ ECHO/
 │   │   │   ├── carried_object_socket.gd # CarrySocket node attachment & collision manager
 │   │   │   ├── action_types.gd       # Typed Action enum, ActionRequest, & ActionResult
 │   │   │   └── apc_perception.gd     # Engine-native perception & FOV/LOS raycast component
+│   │   ├── audio/
+│   │   │   ├── audio_capture_service.gd # Push-to-talk recording service
+│   │   │   ├── audio_buffer.gd       # Audio sample buffer model
+│   │   │   ├── speech_service.gd     # STT and TTS provider orchestrator
+│   │   │   ├── speech_to_text_provider.gd # Base STT provider interface
+│   │   │   ├── text_to_speech_provider.gd # Base TTS provider interface
+│   │   │   ├── speech_request.gd     # Typed speech request model
+│   │   │   ├── speech_response.gd    # Typed speech response model
+│   │   │   └── providers/
+│   │   │       ├── stt/
+│   │   │       │   ├── mock_stt_provider.gd
+│   │   │       │   ├── openai_compatible_stt_provider.gd
+│   │   │       │   └── local_stt_provider.gd
+│   │   │       └── tts/
+│   │   │           ├── mock_tts_provider.gd
+│   │   │           ├── openai_compatible_tts_provider.gd
+│   │   │           └── local_tts_provider.gd
+│   │   ├── conversation/
+│   │   │   ├── command_grounder.gd   # Spoken/typed command grounding engine
+│   │   │   ├── conversation_controller.gd # Conversation state machine controller
+│   │   │   ├── conversation_message.gd# Dialogue message model
+│   │   │   └── response_coordinator.gd# APC response text generator
 │   │   ├── ai/
 │   │   │   ├── ai_service.gd         # AIService node
 │   │   │   ├── ai_provider.gd        # Base AI provider class
@@ -147,7 +187,8 @@ ECHO/
 │       ├── test_phase4.gd      # Phase 4 action & brain pipeline test
 │       ├── test_phase5.gd      # Phase 5 AI connectivity layer test
 │       ├── test_phase6.gd      # Phase 6 AI decision bridge & validation test
-│       └── test_phase7.gd      # Phase 7 object interaction & task execution test
+│       ├── test_phase7.gd      # Phase 7 object interaction & task execution test
+│       └── test_phase8.gd      # Phase 8 multimodal speech & grounding test
 ├── docs/                       # Project Documentation
 │   ├── VISION.md               # Core philosophy & vision
 │   ├── ARCHITECTURE.md         # Component & cognitive pipeline architecture
@@ -155,7 +196,10 @@ ECHO/
 │   ├── AI_PROVIDERS.md         # Phase 5 provider architecture documentation
 │   ├── AI_DECISION_BRIDGE.md   # Phase 6 AI decision bridge documentation
 │   ├── OBJECT_INTERACTION.md   # Phase 7 object interaction architecture
-│   └── TASK_EXECUTION.md       # Phase 7 task execution architecture
+│   ├── TASK_EXECUTION.md       # Phase 7 task execution architecture
+│   ├── VOICE_INTERACTION.md    # Phase 8 voice interaction architecture
+│   ├── COMMAND_GROUNDING.md    # Phase 8 command grounding architecture
+│   └── SHARED_ATTENTION.md     # Phase 8 shared attention architecture
 ├── static/                     # Repository branding & media
 │   └── images/
 │       └── ECHO_LOGO.png       # Official ECHO framework logo
@@ -188,11 +232,11 @@ ECHO/
 From the repository root directory, run:
 
 ```bash
-# Launch project in 3D test room (Deterministic Mode default)
+# Launch project in 3D test room (Mock Speech & Deterministic Mode)
 godot --path client/
 
-# Launch project in AI Decision Mode (OpenRouter)
-ECHO_BRAIN_MODE=ai ECHO_AI_ENABLED=true ECHO_AI_PROVIDER=openrouter OPENROUTER_API_KEY=<key> godot --path client/
+# Launch project with AI Decision Mode & OpenAI STT/TTS Providers
+ECHO_BRAIN_MODE=ai ECHO_AI_ENABLED=true OPENROUTER_API_KEY=<key> ECHO_STT_PROVIDER=openai_compatible ECHO_STT_API_KEY=<key> godot --path client/
 ```
 
 To run the automated verification test suites:
@@ -218,15 +262,18 @@ godot --headless --path client/ -s tests/test_phase6.gd
 
 # Phase 7 Test (Object Interaction & Task Execution)
 godot --headless --path client/ -s tests/test_phase7.gd
+
+# Phase 8 Test (Multimodal Speech, Grounding, & Execution)
+godot --headless --path client/ -s tests/test_phase8.gd
 ```
 
 ---
 
-## ⚠️ Scope & Known Limitations (Phase 7 Baseline)
+## ⚠️ Scope & Known Limitations (Phase 8 Baseline)
 
 - **Single Object Target**: Currently configured for one portable object (`RedBox`).
-- **No General Inventory Grid / Skeletal Rigging**: Object carrying uses simple node attachment (`CarrySocket`) without skeletal hand IK or inventory grid management.
-- **No Speech / Conversation**: Speech recognition and text-to-speech are scheduled for future roadmap phases.
+- **No Long-Term Conversational Memory**: Dialogue context resets after task completion or cancellation.
+- **Statement**: *No long-term memory DB, combat, inventory grid, database, crafting, or multiplayer feature was added.*
 
 ---
 
