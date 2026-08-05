@@ -11,6 +11,7 @@ enum State { IDLE, FOLLOWING }
 @export var path_update_interval: float = 0.2
 
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
+@onready var perception: APCPerception = $Perception
 
 var current_state: State = State.IDLE
 var navigation_ready: bool = false
@@ -123,3 +124,8 @@ func get_state_string() -> String:
 
 func get_last_slide_collision_count() -> int:
 	return _last_slide_collision_count
+
+func get_perception_snapshot() -> Dictionary:
+	if perception:
+		return perception.get_perception_snapshot()
+	return {}

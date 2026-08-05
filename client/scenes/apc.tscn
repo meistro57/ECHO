@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://e2f3g4h5i6j7"]
+[gd_scene load_steps=7 format=3 uid="uid://e2f3g4h5i6j7"]
 
 [ext_resource type="Script" path="res://scripts/apc/apc_controller.gd" id="1_apc"]
+[ext_resource type="Script" path="res://scripts/apc/apc_perception.gd" id="2_perception"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_apc"]
 radius = 0.4
@@ -33,3 +34,6 @@ mesh = SubResource("BoxMesh_visor")
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
 target_desired_distance = 2.0
+
+[node name="Perception" type="Node3D" parent="."]
+script = ExtResource("2_perception")

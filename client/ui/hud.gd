@@ -9,13 +9,15 @@ extends Control
 @onready var on_floor_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/OnFloorLabel
 @onready var collisions_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/CollisionsLabel
 @onready var nav_finished_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NavFinishedLabel
+@onready var player_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PlayerPercLabel
+@onready var redbox_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RedboxPercLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
 var _apc_node: APCController
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 2: APC Locomotion & Following"
+		phase_label.text = "Phase 3: Structured APC Perception"
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
@@ -45,3 +47,30 @@ func _process(_delta: float) -> void:
 			collisions_label.text = "Slide Collisions: %d" % _apc_node.get_last_slide_collision_count()
 		if nav_finished_label and _apc_node.nav_agent:
 			nav_finished_label.text = "Nav Finished: %s" % ("YES" if _apc_node.nav_agent.is_navigation_finished() else "NO")
+
+		# Update Perception Debug Labels
+		if _apc_node.has_method("get_perception_snapshot"):
+			var snapshot: Dictionary = _apc_node.get_perception_snapshot()
+			if snapshot.has("human_player"):
+				var p_data: Dictionary = snapshot["human_player"]
+				if p_data.size() > 0 and player_perc_label:
+					var p_vis: String = "YES" if p_data.get("visible", false) else "NO"
+					var p_dist: float = float(p_data.get("distance", 0.0))
+					var p_fov: String = "YES" if p_data.get("inside_fov", false) else "NO"
+					var p_los: String = "YES" if p_data.get("line_of_sight", false) else "NO"
+					var p_sec: Variant = p_data.get("seconds_since_last_seen", null)
+					var p_sec_str: String = "%.1fs" % float(p_sec) if p_sec != null else "N/A"
+					player_perc_label.text = "Player Vis: %s | Dist: %.1fm | FOV: %s | LOS: %s | LastSeen: %s" % [p_vis, p_dist, p_fov, p_los, p_sec_str]
+
+			if snapshot.has("nearby_objects"):
+				var objs: Array = snapshot["nearby_objects"]
+				for obj in objs:
+					if obj is Dictionary and obj.get("id") == "red_box":
+						if redbox_perc_label:
+							var r_vis: String = "YES" if obj.get("visible", false) else "NO"
+							var r_dist: float = float(obj.get("distance", 0.0))
+							var r_fov: String = "YES" if obj.get("inside_fov", false) else "NO"
+							var r_los: String = "YES" if obj.get("line_of_sight", false) else "NO"
+							var r_sec: Variant = obj.get("seconds_since_last_seen", null)
+							var r_sec_str: String = "%.1fs" % float(r_sec) if r_sec != null else "N/A"
+							redbox_perc_label.text = "Red Box Vis: %s | Dist: %.1fm | FOV: %s | LOS: %s | LastSeen: %s" % [r_vis, r_dist, r_fov, r_los, r_sec_str]

@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://d1e2f3g4h5i6" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://e2f3g4h5i6j7" path="res://scenes/apc.tscn" id="3_apc"]
 [ext_resource type="PackedScene" uid="uid://c7m8n9o0p1q2" path="res://ui/hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/objects/red_box.tscn" id="5_redbox"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_room"]
 vertices = PackedVector3Array(-9.5, 0.1, -9.5, -9.5, 0.1, 9.5, 9.5, 0.1, 9.5, 9.5, 0.1, -9.5)
@@ -104,6 +105,9 @@ shape = SubResource("BoxShape3D_crate")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/CrateObstacle"]
 mesh = SubResource("BoxMesh_crate")
+
+[node name="RedBox" parent="NavigationRegion3D" instance=ExtResource("5_redbox")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.5, 2)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1, 4)

@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 360.0
-offset_bottom = 340.0
+offset_right = 440.0
+offset_bottom = 400.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -53,7 +53,7 @@ text = "ECHO Prototype"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 2: APC Locomotion & Following"
+text = "Phase 3: Structured APC Perception"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -90,6 +90,22 @@ text = "Is On Floor: YES"
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Slide Collisions: 0"
+
+[node name="PercHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+text = "APC Perception Status:"
+
+[node name="PlayerPercLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Player Vis: NO | Dist: 0.0m | FOV: NO | LOS: NO | LastSeen: N/A"
+
+[node name="RedboxPercLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Red Box Vis: NO | Dist: 0.0m | FOV: NO | LOS: NO | LastSeen: N/A"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
