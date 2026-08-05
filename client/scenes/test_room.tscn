@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://e2f3g4h5i6j7" path="res://scenes/apc.tscn" id="3_apc"]
 [ext_resource type="PackedScene" uid="uid://c7m8n9o0p1q2" path="res://ui/hud.tscn" id="4_hud"]
 [ext_resource type="PackedScene" path="res://scenes/objects/red_box.tscn" id="5_redbox"]
+[ext_resource type="Script" path="res://scripts/ai/ai_service.gd" id="6_aiservice"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_room"]
 vertices = PackedVector3Array(-9.5, 0.1, -9.5, -9.5, 0.1, 9.5, 9.5, 0.1, 9.5, 9.5, 0.1, -9.5)
@@ -118,3 +119,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1, -4)
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="HUD" parent="CanvasLayer" instance=ExtResource("4_hud")]
+
+[node name="AIService" type="Node" parent="."]
+script = ExtResource("6_aiservice")
+
+[node name="HTTPRequest" type="HTTPRequest" parent="AIService"]

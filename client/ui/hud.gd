@@ -13,18 +13,34 @@ extends Control
 @onready var player_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PlayerPercLabel
 @onready var redbox_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RedboxPercLabel
 @onready var event_log_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/EventLogLabel
+@onready var ai_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIStatusLabel
+@onready var ai_detail_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIDetailLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
 var _apc_node: APCController
+var _ai_service: AIService
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 4: APC Action & Brain Pipeline"
+		phase_label.text = "Phase 5: Provider-Neutral AI Connectivity Layer"
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
 		if margin_container:
 			margin_container.visible = not margin_container.visible
+
+	if _ai_service == null:
+		var services: Array[Node] = get_tree().get_nodes_in_group("ai_service")
+		if services.size() > 0 and services[0] is AIService:
+			_ai_service = services[0] as AIService
+		else:
+			var found: Node = get_tree().root.find_child("AIService", true, false)
+			if found is AIService:
+				_ai_service = found as AIService
+
+	if Input.is_action_just_pressed("test_ai_connection"):
+		if _ai_service:
+			_ai_service.run_connectivity_test()
 
 	if _apc_node == null:
 		var apcs: Array[Node] = get_tree().get_nodes_in_group("apc")
@@ -92,3 +108,29 @@ func _process(_delta: float) -> void:
 			for i in range(limit):
 				display_entries.append(log_entries[i])
 			event_log_label.text = "Event Log:\n" + ("\n".join(display_entries) if display_entries.size() > 0 else "None")
+
+	# Update AI Connectivity Debug Labels
+	if _ai_service:
+		var enabled_str: String = "YES" if _ai_service.is_ai_enabled() else "NO"
+		var prov_str: String = _ai_service.get_provider_name().capitalize()
+		var cfg_str: String = "YES" if _ai_service.is_provider_configured() else "NO"
+		var model_str: String = _ai_service.get_model_name()
+		var status_str: String = _ai_service.current_status
+
+		if ai_status_label:
+			ai_status_label.text = "AI Enabled: %s | Provider: %s | Configured: %s | Model: %s | Status: %s" % [
+				enabled_str, prov_str, cfg_str, model_str, status_str
+			]
+
+		if ai_detail_label:
+			if _ai_service.last_response != null:
+				var res: AIResponse = _ai_service.last_response
+				var lat_str: String = "%.0fms" % res.latency_ms
+				var stat_code: int = res.http_status
+				var tok_str: String = "%d (P:%d, C:%d)" % [res.total_tokens, res.prompt_tokens, res.completion_tokens]
+				var err_str: String = res.error_message if not res.error_message.is_empty() else "None"
+				ai_detail_label.text = "Last Latency: %s | HTTP Code: %d | Tokens: %s | Error: %s" % [
+					lat_str, stat_code, tok_str, err_str
+				]
+			else:
+				ai_detail_label.text = "Last Latency: N/A | HTTP Code: N/A | Tokens: N/A | Error: None"

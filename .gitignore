@@ -16,3 +16,8 @@ mono_crash.*.json
 Thumbs.db
 *.tmp
 *.log
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example

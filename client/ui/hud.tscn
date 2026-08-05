@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 460.0
-offset_bottom = 480.0
+offset_right = 520.0
+offset_bottom = 540.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -53,7 +53,7 @@ text = "ECHO Prototype"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 4: APC Action & Brain Pipeline"
+text = "Phase 5: Provider-Neutral AI Connectivity Layer"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -113,6 +113,22 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Red Box Vis: NO | Dist: 0.0m | FOV: NO | LOS: NO | LastSeen: N/A"
 
+[node name="AIHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1.0, 0.6, 0.2, 1)
+theme_override_font_sizes/font_size = 13
+text = "AI Connectivity Status:"
+
+[node name="AIStatusLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "AI Enabled: NO | Provider: OpenRouter | Configured: NO | Model: None | Status: IDLE"
+
+[node name="AIDetailLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Last Latency: N/A | HTTP Code: N/A | Tokens: N/A | Error: None"
+
 [node name="EventLogHeader" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
@@ -140,4 +156,5 @@ text = "WASD: Move
 Mouse: Look
 Space: Jump
 Escape: Release Mouse
-F1: Toggle Debug HUD"
+F1: Toggle Debug HUD
+F3: Test AI Connectivity"
