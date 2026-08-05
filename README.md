@@ -21,15 +21,16 @@ ECHO is an experimental framework exploring a new paradigm in game AI:
 
 ---
 
-## 🚀 Phase 2: APC Locomotion & Following
+## 🚀 Phase 2: APC Locomotion & Following (Completed)
 
-Phase 2 adds deterministic 3D pathfinding locomotion to the APC using Godot's built-in `NavigationRegion3D`, `NavigationMesh`, and `NavigationAgent3D`.
+Phase 2 provides deterministic 3D pathfinding locomotion to the APC using Godot 4.7.1 built-in `NavigationRegion3D`, `NavigationMesh`, and `NavigationAgent3D`.
 
 ### Features & Navigation Setup
 - **State System**: Clean state machine with `IDLE` and `FOLLOWING` states, featuring a hysteresis distance buffer (`stop_distance` = 2.0m, `start_follow_distance` = 3.2m) to guarantee smooth stopping and zero jittering.
 - **Pathfinding Locomotion**: The APC navigates around obstacle crates and walls using valid navigation paths calculated by `NavigationAgent3D`.
 - **Navigation Mesh**: The test room environment uses a `NavigationMesh` inside `NavigationRegion3D`, configured with `PARSED_GEOMETRY_STATIC_COLLIDERS` to automatically parse collision shapes at runtime while preserving scene resource caching.
 - **Embodied Physics**: The APC moves via `CharacterBody3D` velocity and `move_and_slide()` without teleportation or clipping through walls or obstacles.
+- **Live Debug HUD**: Pressing **F1** (`toggle_debug`) toggles real-time debug overlay metrics including APC State, distance to player, commanded/real velocity, floor status, slide collisions, and navigation finished status.
 
 ### Controls
 
@@ -39,6 +40,7 @@ Phase 2 adds deterministic 3D pathfinding locomotion to the APC using Godot's bu
 | **Look Around** | `Mouse` |
 | **Jump** | `Space` |
 | **Release / Recapture Mouse** | `Escape` or Left Click |
+| **Toggle Debug HUD** | `F1` |
 
 ---
 
@@ -46,7 +48,7 @@ Phase 2 adds deterministic 3D pathfinding locomotion to the APC using Godot's bu
 
 ```
 ECHO/
-├── client/                     # Godot 4.x Project Root
+├── client/                     # Godot 4.7.1 Project Root
 │   ├── project.godot           # Main Godot project settings & InputMap
 │   ├── scenes/                 # Scene files (.tscn)
 │   │   ├── main.tscn           # Main launch scene
@@ -80,10 +82,10 @@ ECHO/
 
 ---
 
-## 🏃 Opening and Running in Godot 4.x
+## 🏃 Opening and Running in Godot 4.7.1 Stable
 
 ### Prerequisites
-- [Godot Engine 4.x](https://godotengine.org/download) (4.2+ or 4.3 recommended).
+- [Godot Engine 4.7.1 Stable](https://godotengine.org/download).
 
 ### Exact Steps to Run
 
@@ -92,7 +94,7 @@ ECHO/
    ```bash
    git clone https://github.com/meistro57/ECHO.git
    ```
-2. Launch **Godot Engine 4.x**.
+2. Launch **Godot Engine 4.7.1**.
 3. Click **Import**, browse to `ECHO/client/project.godot`, and select it.
 4. Click **Import & Edit**.
 5. Press **F5** (or click **Play**) to launch `res://scenes/main.tscn`.
@@ -105,11 +107,22 @@ From the repository root directory, run:
 godot --path client/
 ```
 
-To run the Phase 2 automated test suite:
+To run the automated verification test suites:
 
 ```bash
+# Phase 1 Test
+godot --headless --path client/ -s tests/test_phase1.gd
+
+# Phase 2 Test
 godot --headless --path client/ -s tests/test_phase2.gd
 ```
+
+---
+
+## ⚠️ Known Limitations (Phase 2 Baseline)
+
+- **No Perception / Sensing**: The APC resolves target position directly from the game node tree rather than a line-of-sight vision cone or sensory memory (scheduled for Phase 3).
+- **No Higher Cognitive Architecture**: Movement is purely rule-based locomotion without LLMs, goal planning, or speech synthesis (scheduled for future roadmap phases).
 
 ---
 
