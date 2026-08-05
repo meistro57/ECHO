@@ -18,12 +18,22 @@ var navigation_ready: bool = false
 var path_timer: float = 0.0
 var diagnostics_printed: bool = false
 
+# Diagnostics Tracking
+var last_pos_before: Vector3 = Vector3.ZERO
+var last_pos_after: Vector3 = Vector3.ZERO
+var last_vel_before: Vector3 = Vector3.ZERO
+var last_vel_after: Vector3 = Vector3.ZERO
+var last_real_velocity: Vector3 = Vector3.ZERO
+var last_slide_collision_count: int = 0
+var last_collision_details: String = ""
+var diag_timer: float = 0.0
+
 signal state_changed(new_state: State)
 
 func _ready() -> void:
 	add_to_group("apc")
 	if nav_agent:
-		nav_agent.path_desired_distance = 0.5
+		nav_agent.path_desired_distance = 1.0
 		nav_agent.target_desired_distance = 0.5
 	call_deferred("_wait_for_navigation_ready")
 
@@ -59,7 +69,7 @@ func _physics_process(delta: float) -> void:
 	if not navigation_ready or target == null:
 		velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
 		velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
-		move_and_slide()
+		_execute_move_and_slide_with_diagnostics(delta)
 		return
 
 	# Print temporary one-shot diagnostics once map is ready & target found
@@ -94,23 +104,59 @@ func _physics_process(delta: float) -> void:
 			# 5b. Query next path position & calculate velocity
 			if not nav_agent.is_navigation_finished():
 				var next_path_pos = nav_agent.get_next_path_position()
-				var dir = global_position.direction_to(next_path_pos)
-				dir.y = 0.0
-				dir = dir.normalized()
+				var horiz_vec = Vector3(next_path_pos.x - global_position.x, 0.0, next_path_pos.z - global_position.z)
 
-				velocity.x = dir.x * move_speed
-				velocity.z = dir.z * move_speed
+				if horiz_vec.length() > 0.05:
+					var dir = horiz_vec.normalized()
+					velocity.x = dir.x * move_speed
+					velocity.z = dir.z * move_speed
 
-				# Smooth rotation toward movement direction
-				if dir.length() > 0.1:
 					var target_rot = atan2(-dir.x, -dir.z)
 					rotation.y = lerp_angle(rotation.y, target_rot, delta * rotation_speed)
+				else:
+					velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
+					velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
 			else:
 				velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 5.0)
 				velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 5.0)
 
-	# 6. Apply physical movement
+	# 6. Apply physical movement with detailed collision diagnostics
+	_execute_move_and_slide_with_diagnostics(delta)
+
+func _execute_move_and_slide_with_diagnostics(delta: float) -> void:
+	last_pos_before = global_position
+	last_vel_before = velocity
+
 	move_and_slide()
+
+	last_pos_after = global_position
+	last_vel_after = velocity
+	last_real_velocity = get_real_velocity()
+	last_slide_collision_count = get_slide_collision_count()
+
+	var details: Array[String] = []
+	for i in range(last_slide_collision_count):
+		var collision = get_slide_collision(i)
+		if collision:
+			var collider_name = collision.get_collider().name if collision.get_collider() else "Unknown"
+			details.append("%s (Normal: %s)" % [collider_name, collision.get_normal()])
+	last_collision_details = ", ".join(details) if details.size() > 0 else "None"
+
+	# Throttled debug output every 1.0 second when following
+	diag_timer += delta
+	if diag_timer >= 1.0 and current_state == State.FOLLOWING:
+		diag_timer = 0.0
+		print("\n--- [APC MOTION DIAGNOSTICS] ---")
+		print("Pos Before: ", last_pos_before)
+		print("Pos After:  ", last_pos_after)
+		print("Displacement / Frame: ", last_pos_after - last_pos_before)
+		print("Vel Before: ", last_vel_before)
+		print("Vel After:  ", last_vel_after)
+		print("Real Velocity: ", last_real_velocity)
+		print("Is On Floor: ", is_on_floor(), " | Floor Normal: ", get_floor_normal())
+		print("Slide Collision Count: ", last_slide_collision_count)
+		print("Collisions: ", last_collision_details)
+		print("--------------------------------\n")
 
 func _print_one_shot_diagnostics() -> void:
 	diagnostics_printed = true

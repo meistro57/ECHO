@@ -106,10 +106,10 @@ shape = SubResource("BoxShape3D_crate")
 mesh = SubResource("BoxMesh_crate")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.9, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1, 4)
 
 [node name="APC" parent="." instance=ExtResource("3_apc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.9, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1, -4)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

@@ -6,6 +6,9 @@ extends Control
 @onready var distance_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/DistanceLabel
 @onready var next_path_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NextPathLabel
 @onready var velocity_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/VelocityLabel
+@onready var real_vel_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RealVelocityLabel
+@onready var on_floor_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/OnFloorLabel
+@onready var collisions_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/CollisionsLabel
 @onready var nav_finished_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NavFinishedLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
@@ -39,4 +42,11 @@ func _process(_delta: float) -> void:
 				nav_finished_label.text = "Nav Finished: %s" % ("YES" if apc_node.nav_agent.is_navigation_finished() else "NO")
 		if velocity_label:
 			var vel = apc_node.velocity
-			velocity_label.text = "Velocity: (%.1f, %.1f, %.1f) [Speed: %.1fm/s]" % [vel.x, vel.y, vel.z, Vector2(vel.x, vel.z).length()]
+			velocity_label.text = "Cmd Velocity: (%.1f, %.1f, %.1f) [Speed: %.1fm/s]" % [vel.x, vel.y, vel.z, Vector2(vel.x, vel.z).length()]
+		if real_vel_label:
+			var rvel = apc_node.get_real_velocity()
+			real_vel_label.text = "Real Velocity: (%.1f, %.1f, %.1f) [Speed: %.1fm/s]" % [rvel.x, rvel.y, rvel.z, Vector2(rvel.x, rvel.z).length()]
+		if on_floor_label:
+			on_floor_label.text = "Is On Floor: %s (Normal: %s)" % ["YES" if apc_node.is_on_floor() else "NO", apc_node.get_floor_normal()]
+		if collisions_label:
+			collisions_label.text = "Slide Collisions: %d [%s]" % [apc_node.last_slide_collision_count, apc_node.last_collision_details]
