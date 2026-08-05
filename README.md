@@ -2,34 +2,114 @@
   <img src="static/images/ECHO_LOGO.png" alt="ECHO Logo" width="600" />
 </p>
 
-## Embodied AI Player Characters
+<h1 align="center">ECHO</h1>
+<p align="center"><strong>Open-Source Experimental Framework for Embodied AI Player Characters (APCs)</strong></p>
 
-ECHO is an experimental framework exploring a new kind of game interaction:
+---
 
-A human player and an AI player character sharing the same world.
+## 🌟 Core Concept
 
-Not an NPC.  
-Not a chatbot.  
-A companion with perception, memory, and agency.
+ECHO is an experimental framework exploring a new paradigm in game AI:
 
-## First Goal
+- **Shared Co-Presence**: A human-controlled player and an AI-controlled player character (APC) occupy the exact same 3D physical environment.
+- **Embodied, Not a Chatbot**: The APC is an embodied entity in the game world with a physical body, location, orientation, line of sight, and navigation limits—not a floating text box or conversational agent.
+- **Legal Game Actions**: The APC perceives its environment, evaluates decisions, and acts exclusively through structured legal game actions (`MOVE`, `INTERACT`, `DROP`, `SPEAK`) via standard physics and navigation systems, never by direct scene state hacking or teleportation.
+- **First Proof of Concept Target**: One room, one human player, one APC, and one interactive object.
 
-Create the smallest possible proof:
+---
 
-- One room
-- One human player
-- One AI player character
-- One interactive object
+## 🚀 Phase 2: APC Locomotion & Following
 
-The test:
+Phase 2 adds deterministic 3D pathfinding locomotion to the APC using Godot's built-in `NavigationRegion3D`, `NavigationMesh`, and `NavigationAgent3D`.
 
-> "Can an AI character perceive the world, understand a human request, and physically act within the same environment?"
+### Features & Navigation Setup
+- **State System**: Clean state machine with `IDLE` and `FOLLOWING` states, featuring a hysteresis distance buffer (`stop_distance` = 2.0m, `start_follow_distance` = 3.2m) to guarantee smooth stopping and zero jittering.
+- **Pathfinding Locomotion**: The APC navigates around obstacle crates and walls using valid navigation paths calculated by `NavigationAgent3D`.
+- **Navigation Mesh**: The test room environment uses a `NavigationMesh` inside `NavigationRegion3D`, configured with `PARSED_GEOMETRY_STATIC_COLLIDERS` to automatically parse collision shapes at runtime while preserving scene resource caching.
+- **Embodied Physics**: The APC moves via `CharacterBody3D` velocity and `move_and_slide()` without teleportation or clipping through walls or obstacles.
 
-## Core Loop
+### Controls
 
-`Perceive` → `Think` → `Remember` → `Act` → `Connect`
+| Action | Control |
+| --- | --- |
+| **Move** | `W` `A` `S` `D` |
+| **Look Around** | `Mouse` |
+| **Jump** | `Space` |
+| **Release / Recapture Mouse** | `Escape` or Left Click |
 
-## Project Status
+---
 
-🌱 Prototype stage
+## 📂 Repository Structure
 
+```
+ECHO/
+├── client/                     # Godot 4.x Project Root
+│   ├── project.godot           # Main Godot project settings & InputMap
+│   ├── scenes/                 # Scene files (.tscn)
+│   │   ├── main.tscn           # Main launch scene
+│   │   ├── test_room.tscn      # 3D room with NavigationRegion3D, floor, walls, crate
+│   │   ├── player.tscn         # First-person human player (CharacterBody3D)
+│   │   └── apc.tscn            # Embodied APC character with NavigationAgent3D
+│   ├── scripts/                # GDScript files (.gd)
+│   │   ├── player/
+│   │   │   └── player_controller.gd  # Human player movement & camera script
+│   │   ├── apc/
+│   │   │   └── apc_controller.gd     # APC state machine (IDLE / FOLLOWING) & locomotion
+│   │   └── test_room.gd              # NavigationMesh baking & scene setup script
+│   ├── ui/                     # UI overlays
+│   │   ├── hud.tscn            # HUD overlay with live APC state display
+│   │   └── hud.gd              # HUD controller script
+│   ├── assets/                 # Project assets
+│   └── tests/                  # Automated verification test suites
+│       ├── test_phase1.gd      # Phase 1 automated test script
+│       └── test_phase2.gd      # Phase 2 automated pathfinding & state test script
+├── docs/                       # Project Documentation
+│   ├── VISION.md               # Core philosophy & vision
+│   ├── ARCHITECTURE.md         # Component & cognitive pipeline architecture
+│   └── ROADMAP.md              # Multi-phase development roadmap
+├── static/                     # Repository branding & media
+│   └── images/
+│       └── ECHO_LOGO.png       # Official ECHO framework logo
+├── .gitignore                  # Godot 4.x git ignore rules
+├── LICENSE                     # MIT License
+└── README.md                   # Repository overview & run instructions
+```
+
+---
+
+## 🏃 Opening and Running in Godot 4.x
+
+### Prerequisites
+- [Godot Engine 4.x](https://godotengine.org/download) (4.2+ or 4.3 recommended).
+
+### Exact Steps to Run
+
+#### Option 1: Via Godot Editor GUI
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/meistro57/ECHO.git
+   ```
+2. Launch **Godot Engine 4.x**.
+3. Click **Import**, browse to `ECHO/client/project.godot`, and select it.
+4. Click **Import & Edit**.
+5. Press **F5** (or click **Play**) to launch `res://scenes/main.tscn`.
+
+#### Option 2: Via Terminal Command Line
+From the repository root directory, run:
+
+```bash
+# Launch project in 3D test room
+godot --path client/
+```
+
+To run the Phase 2 automated test suite:
+
+```bash
+godot --headless --path client/ -s tests/test_phase2.gd
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -1,0 +1,18 @@
+# Godot 4.x build and cache files
+.godot/
+*.import
+export_presets.cfg
+
+# Translation files
+*.translation
+
+# Mono / C# binaries if applicable
+.mono/
+data_*/
+mono_crash.*.json
+
+# Operating System & IDE junk
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
