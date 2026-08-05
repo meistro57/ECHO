@@ -71,7 +71,7 @@ func _physics_process(delta: float) -> void:
 		current_action_enum = _current_action_request.action
 
 	if brain:
-		_current_action_request = brain.decide_action(snapshot, get_state_string(), current_action_enum)
+		_current_action_request = brain.decide_action_with_delta(delta, snapshot, get_state_string(), current_action_enum)
 
 	# 6. Pipeline Step 3 & 4: Action Execution via ActionController
 	if action_controller and _current_action_request != null:
@@ -108,3 +108,13 @@ func get_event_log() -> Array[String]:
 	if action_controller:
 		return action_controller.get_event_log()
 	return []
+
+func get_brain_mode_string() -> String:
+	if brain:
+		return brain.get_mode_string()
+	return "DETERMINISTIC"
+
+func toggle_brain_mode() -> String:
+	if brain:
+		return brain.toggle_brain_mode()
+	return "DETERMINISTIC"

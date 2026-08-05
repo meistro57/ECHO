@@ -1,76 +1,78 @@
 class_name APCBrain
 extends Node3D
 
+enum BrainMode { DETERMINISTIC, AI }
+
+@export var brain_mode: BrainMode = BrainMode.DETERMINISTIC
 @export var follow_distance_threshold: float = 3.2
 
-func decide_action(perception_snapshot: Dictionary, _apc_state: String = "IDLE", _current_action: ActionTypes.Action = ActionTypes.Action.NONE) -> ActionTypes.ActionRequest:
-	# Rule 4: If no perception data exists
-	if perception_snapshot.is_empty() or not perception_snapshot.has("human_player"):
-		return ActionTypes.ActionRequest.new(
-			ActionTypes.Action.IDLE,
-			"",
-			Vector3.ZERO,
-			0.0,
-			"No perception data"
-		)
+var deterministic_brain: DeterministicBrain
+var ai_brain: AIBrain
 
-	var p_data: Dictionary = perception_snapshot["human_player"]
-	if p_data.is_empty():
-		return ActionTypes.ActionRequest.new(
-			ActionTypes.Action.IDLE,
-			"",
-			Vector3.ZERO,
-			0.0,
-			"No human player perception data"
-		)
+signal mode_changed(new_mode: BrainMode)
 
-	var player_visible: bool = bool(p_data.get("visible", false))
-	var player_dist: float = float(p_data.get("distance", 0.0))
-	var player_last_seen_dict: Variant = p_data.get("last_seen_position", null)
+func _ready() -> void:
+	deterministic_brain = DeterministicBrain.new()
+	deterministic_brain.follow_distance_threshold = follow_distance_threshold
 
-	var player_pos: Vector3 = Vector3.ZERO
-	if player_last_seen_dict is Dictionary:
-		var dict_pos: Dictionary = player_last_seen_dict as Dictionary
-		player_pos = Vector3(
-			float(dict_pos.get("x", 0.0)),
-			float(dict_pos.get("y", 0.0)),
-			float(dict_pos.get("z", 0.0))
-		)
+	ai_brain = get_node_or_null("AIBrain") as AIBrain
+	if ai_brain == null:
+		ai_brain = AIBrain.new()
+		ai_brain.name = "AIBrain"
+		add_child(ai_brain)
 
-	# Rule 1: If player visible AND distance > follow distance -> FOLLOW_PLAYER
-	if player_visible and player_dist > follow_distance_threshold:
-		return ActionTypes.ActionRequest.new(
-			ActionTypes.Action.FOLLOW_PLAYER,
-			"human_player",
-			player_pos,
-			0.0,
-			"Player visible and beyond follow distance"
-		)
+	var env_mode: String = OS.get_environment("ECHO_BRAIN_MODE").to_lower().strip_edges()
+	if env_mode == "ai":
+		set_brain_mode(BrainMode.AI)
+	else:
+		set_brain_mode(BrainMode.DETERMINISTIC)
 
-	# Rule 2: If player visible AND distance <= follow distance -> LOOK_AT_PLAYER
-	if player_visible and player_dist <= follow_distance_threshold:
-		return ActionTypes.ActionRequest.new(
-			ActionTypes.Action.LOOK_AT_PLAYER,
-			"human_player",
-			player_pos,
-			0.0,
-			"Player visible and within close range"
-		)
+func set_brain_mode(new_mode: BrainMode) -> void:
+	if new_mode == BrainMode.AI:
+		if ai_brain == null:
+			_connect_ai_brain()
+		if ai_brain and ai_brain.ai_service and not ai_brain.ai_service.is_provider_configured():
+			print("[APCBrain] Cannot switch to AI mode: AI Provider not configured.")
+			brain_mode = BrainMode.DETERMINISTIC
+			mode_changed.emit(brain_mode)
+			return
+		brain_mode = BrainMode.AI
+	else:
+		brain_mode = BrainMode.DETERMINISTIC
+		if ai_brain and ai_brain.ai_service:
+			ai_brain.ai_service.cancel_request()
 
-	# Rule 3: If player not visible -> WAIT
-	if not player_visible:
-		return ActionTypes.ActionRequest.new(
-			ActionTypes.Action.WAIT,
-			"human_player",
-			player_pos,
-			0.0,
-			"Player not visible"
-		)
+	mode_changed.emit(brain_mode)
 
-	return ActionTypes.ActionRequest.new(
-		ActionTypes.Action.IDLE,
-		"",
-		Vector3.ZERO,
-		0.0,
-		"Default idle fallback"
-	)
+func toggle_brain_mode() -> String:
+	if brain_mode == BrainMode.DETERMINISTIC:
+		set_brain_mode(BrainMode.AI)
+	else:
+		set_brain_mode(BrainMode.DETERMINISTIC)
+	return get_mode_string()
+
+func decide_action_with_delta(delta: float, perception_snapshot: Dictionary, apc_state: String = "IDLE", current_action: ActionTypes.Action = ActionTypes.Action.NONE) -> ActionTypes.ActionRequest:
+	if brain_mode == BrainMode.AI and ai_brain != null:
+		ai_brain.process_ai_tick(delta, perception_snapshot, apc_state, current_action)
+		
+		if ai_brain.current_ai_action_request != null and not ai_brain.fallback_active:
+			return ai_brain.current_ai_action_request
+		else:
+			# Fallback to Deterministic Brain
+			return deterministic_brain.decide_action(perception_snapshot, apc_state, current_action)
+
+	return deterministic_brain.decide_action(perception_snapshot, apc_state, current_action)
+
+# Backward-compatible decide_action signature for test suite
+func decide_action(perception_snapshot: Dictionary, apc_state: String = "IDLE", current_action: ActionTypes.Action = ActionTypes.Action.NONE) -> ActionTypes.ActionRequest:
+	return decide_action_with_delta(0.016, perception_snapshot, apc_state, current_action)
+
+func get_mode_string() -> String:
+	match brain_mode:
+		BrainMode.DETERMINISTIC: return "DETERMINISTIC"
+		BrainMode.AI: return "AI"
+	return "DETERMINISTIC"
+
+func _connect_ai_brain() -> void:
+	if ai_brain:
+		ai_brain._connect_ai_service()

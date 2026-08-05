@@ -145,6 +145,7 @@ func run_tests() -> void:
 
 	# Test 6: Gameplay & Brain Isolation Verification
 	print("\n--- Test 6: Deterministic Brain & Gameplay Isolation ---")
+	apc._physics_process(0.016)
 	var brain_decision_before: String = apc.get_brain_decision_string()
 	var pos_before: Vector3 = apc.global_position
 

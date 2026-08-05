@@ -41,21 +41,21 @@ func execute_action_request(request: ActionTypes.ActionRequest, delta: float, pl
 
 	# Execute requested action behavior
 	match request.action:
-		ActionTypes.Action.FOLLOW_PLAYER:
-			_execute_follow_player(request, delta, player_node)
-		ActionTypes.Action.LOOK_AT_PLAYER:
-			_execute_look_at_player(request, delta, player_node)
+		ActionTypes.Action.FOLLOW_PLAYER, ActionTypes.Action.MOVE_TO_OBJECT, ActionTypes.Action.MOVE_TO_POSITION:
+			_execute_move_to(request, delta, player_node)
+		ActionTypes.Action.LOOK_AT_PLAYER, ActionTypes.Action.LOOK_AT_OBJECT:
+			_execute_look_at(request, delta, player_node)
 		ActionTypes.Action.WAIT:
 			_execute_wait(delta)
 		ActionTypes.Action.IDLE, ActionTypes.Action.NONE, _:
 			_execute_idle(delta)
 
-func _execute_follow_player(request: ActionTypes.ActionRequest, delta: float, player_node: Node3D) -> void:
+func _execute_move_to(request: ActionTypes.ActionRequest, delta: float, player_node: Node3D) -> void:
 	if _apc == null or _nav_agent == null:
 		return
 
 	var target_pos: Vector3 = request.target_position
-	if player_node != null:
+	if request.target_id == "human_player" and player_node != null:
 		target_pos = player_node.global_position
 
 	_path_timer += delta
@@ -83,7 +83,7 @@ func _execute_follow_player(request: ActionTypes.ActionRequest, delta: float, pl
 		_apc.velocity.x = move_toward(_apc.velocity.x, 0.0, move_speed * delta * 5.0)
 		_apc.velocity.z = move_toward(_apc.velocity.z, 0.0, move_speed * delta * 5.0)
 
-func _execute_look_at_player(request: ActionTypes.ActionRequest, delta: float, player_node: Node3D) -> void:
+func _execute_look_at(request: ActionTypes.ActionRequest, delta: float, player_node: Node3D) -> void:
 	if _apc == null:
 		return
 
@@ -92,7 +92,7 @@ func _execute_look_at_player(request: ActionTypes.ActionRequest, delta: float, p
 	_apc.velocity.z = move_toward(_apc.velocity.z, 0.0, move_speed * delta * 5.0)
 
 	var target_pos: Vector3 = request.target_position
-	if player_node != null:
+	if request.target_id == "human_player" and player_node != null:
 		target_pos = player_node.global_position
 
 	var horiz_vec: Vector3 = Vector3(target_pos.x - _apc.global_position.x, 0.0, target_pos.z - _apc.global_position.z)

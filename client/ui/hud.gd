@@ -22,7 +22,7 @@ var _ai_service: AIService
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 5: Provider-Neutral AI Connectivity Layer"
+		phase_label.text = "Phase 6: AI-Driven Action Selection & Decision Bridge"
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
@@ -47,14 +47,36 @@ func _process(_delta: float) -> void:
 		if apcs.size() > 0 and apcs[0] is APCController:
 			_apc_node = apcs[0] as APCController
 
+	if Input.is_action_just_pressed("toggle_brain_mode"):
+		if _apc_node:
+			var new_mode_str: String = _apc_node.toggle_brain_mode()
+			print("[HUD] Brain mode toggled to: ", new_mode_str)
+
 	if _apc_node:
 		var decision_str: String = _apc_node.get_brain_decision_string()
 		var exec_str: String = _apc_node.get_execution_status_string()
+		var mode_str: String = _apc_node.get_brain_mode_string()
+
+		var fallback_str: String = "NO"
+		var ai_status_str: String = "IDLE"
+		var val_err: String = "None"
+		var acc_act: String = "None"
+		var rej_act: String = "None"
+
+		if _apc_node.brain and _apc_node.brain.ai_brain:
+			var ab: AIBrain = _apc_node.brain.ai_brain
+			fallback_str = "YES" if ab.fallback_active else "NO"
+			ai_status_str = ab.decision_status
+			val_err = ab.last_validation_error
+			acc_act = ab.last_accepted_action_name
+			rej_act = ab.last_rejected_action_name
 
 		if state_label:
 			state_label.text = "APC Action: " + decision_str
 		if brain_label:
-			brain_label.text = "Brain Decision: %s | Exec: %s" % [decision_str, exec_str]
+			brain_label.text = "Brain Mode: %s | AI Status: %s | Fallback: %s | Accepted: %s | Rejected: %s | Err: %s" % [
+				mode_str, ai_status_str, fallback_str, acc_act, rej_act, val_err
+			]
 		if distance_label and _apc_node.target:
 			var dist: float = _apc_node.global_position.distance_to(_apc_node.target.global_position)
 			distance_label.text = "Distance: %.2fm" % dist
@@ -104,7 +126,7 @@ func _process(_delta: float) -> void:
 		if event_log_label and _apc_node.has_method("get_event_log"):
 			var log_entries: Array[String] = _apc_node.get_event_log()
 			var display_entries: Array[String] = []
-			var limit: int = min(4, log_entries.size()) # Show top 4 entries in HUD UI panel
+			var limit: int = min(4, log_entries.size())
 			for i in range(limit):
 				display_entries.append(log_entries[i])
 			event_log_label.text = "Event Log:\n" + ("\n".join(display_entries) if display_entries.size() > 0 else "None")
