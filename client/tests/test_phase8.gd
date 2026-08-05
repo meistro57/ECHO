@@ -1,6 +1,7 @@
 extends SceneTree
 
 var main_node: Node3D
+var _tests_started: bool = false
 
 func _init() -> void:
 	print("\n==========================================")
@@ -17,7 +18,9 @@ func _init() -> void:
 	root.add_child(main_node)
 
 func _process(_delta: float) -> bool:
-	run_tests()
+	if not _tests_started:
+		_tests_started = true
+		run_tests()
 	return false
 
 func run_tests() -> void:
@@ -172,6 +175,42 @@ func run_tests() -> void:
 		quit(1)
 		return
 	print("[PASS] Task cancellation via voice/key verified.")
+
+	# Test 12: Explicit instructions physically executed
+	print("\n--- Test 12: Physical Instruction Execution ---")
+	# Place APC near player so the autonomous brain would LOOK, not FOLLOW
+	apc.global_position = player.global_position + Vector3(3, 0, 0)
+	await physics_frame
+	await physics_frame
+	var pos_before_follow: Vector3 = apc.global_position
+	conv_ctrl.process_text_command("follow me")
+	await physics_frame
+	var moved_follow: bool = false
+	for i in range(90):
+		await physics_frame
+		if apc.global_position.distance_to(pos_before_follow) > 0.25:
+			moved_follow = true
+			break
+	if not moved_follow:
+		print("[FAIL] 'follow me' did not physically move the APC.")
+		quit(1)
+		return
+	print("[PASS] 'follow me' physically moved the APC.")
+
+	conv_ctrl.process_text_command("wait")
+	await physics_frame
+	# allow deceleration from full follow speed, then verify the APC comes to rest
+	for i in range(60):
+		await physics_frame
+	var rest_check_start: Vector3 = apc.global_position
+	for i in range(20):
+		await physics_frame
+	var drift: float = apc.global_position.distance_to(rest_check_start)
+	if drift > 0.1:
+		print("[FAIL] 'wait' did not stop the APC (still drifting %.2fm)." % drift)
+		quit(1)
+		return
+	print("[PASS] 'wait' physically stopped the APC.")
 
 	print("\n==========================================")
 	print("  PHASE 8 MULTIMODAL SPEECH VERIFIED [OK]")

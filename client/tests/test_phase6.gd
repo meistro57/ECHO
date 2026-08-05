@@ -1,6 +1,7 @@
 extends SceneTree
 
 var main_node: Node3D
+var _tests_started: bool = false
 
 func _init() -> void:
 	print("\n==========================================")
@@ -17,7 +18,9 @@ func _init() -> void:
 	root.add_child(main_node)
 
 func _process(_delta: float) -> bool:
-	run_tests()
+	if not _tests_started:
+		_tests_started = true
+		run_tests()
 	return false
 
 func run_tests() -> void:

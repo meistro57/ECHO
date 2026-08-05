@@ -23,6 +23,7 @@ var clarification_timer: float = 0.0
 
 var pending_memory_confirmation_action: String = ""
 var pending_memory_confirmation_text: String = ""
+var pending_memory_confirmation_timer: float = 0.0
 var pending_forget_candidates: Array = []
 
 @export var clarification_timeout_seconds: float = 15.0
@@ -64,6 +65,13 @@ func _process(delta: float) -> void:
 		clarification_timer -= delta
 		if clarification_timer <= 0.0:
 			pending_clarification_target = ""
+
+	if pending_memory_confirmation_timer > 0.0:
+		pending_memory_confirmation_timer -= delta
+		if pending_memory_confirmation_timer <= 0.0:
+			pending_memory_confirmation_action = ""
+			pending_memory_confirmation_text = ""
+			pending_forget_candidates.clear()
 
 	if Input.is_action_just_pressed("push_to_talk"):
 		_on_ptt_pressed()
@@ -125,6 +133,9 @@ func _process_audio_buffer(buf: AudioBuffer) -> void:
 func _interpret_and_execute(text: String) -> void:
 	active_turn_id = "turn_%d" % int(Time.get_ticks_msec())
 
+	if apc_node == null:
+		_connect_nodes()
+
 	if _handle_pending_memory_confirmation(text):
 		return
 
@@ -166,6 +177,8 @@ func _interpret_and_execute(text: String) -> void:
 		_set_state(State.EXECUTING)
 		if ground_res.task_request != null and apc_node and apc_node.task_controller:
 			apc_node.task_controller.start_task(ground_res.task_request)
+		elif ground_res.action_request != null and apc_node:
+			apc_node.execute_user_action(ground_res.action_request)
 		_trigger_apc_response(ResponseCoordinator.select_response_text(ground_res))
 		return
 
@@ -193,6 +206,7 @@ func _handle_memory_intent(ground_res: CommandGrounder.GroundingResult, memory_s
 		if ground_res.needs_confirmation:
 			pending_memory_confirmation_action = "store"
 			pending_memory_confirmation_text = latest_human_transcript
+			pending_memory_confirmation_timer = clarification_timeout_seconds
 			_trigger_apc_response("Please confirm memory storage by saying yes or no.")
 			return true
 		var stored = memory_service.record_player_statement(ground_res.memory_fact_text)
@@ -236,6 +250,7 @@ func _handle_memory_intent(ground_res: CommandGrounder.GroundingResult, memory_s
 	if ground_res.is_memory_clear_all_command:
 		pending_memory_confirmation_action = "clear_all"
 		pending_memory_confirmation_text = ""
+		pending_memory_confirmation_timer = clarification_timeout_seconds
 		_trigger_apc_response("Clear all memory requires confirmation. Say yes or no.")
 		return true
 
@@ -256,12 +271,14 @@ func _handle_pending_memory_confirmation(raw_text: String) -> bool:
 	if memory_service == null:
 		pending_memory_confirmation_action = ""
 		pending_memory_confirmation_text = ""
+		pending_memory_confirmation_timer = 0.0
 		_trigger_apc_response("Memory service is unavailable.")
 		return true
 
 	if is_no:
 		pending_memory_confirmation_action = ""
 		pending_memory_confirmation_text = ""
+		pending_memory_confirmation_timer = 0.0
 		_trigger_apc_response("Okay, I won't change memory.")
 		return true
 
@@ -269,6 +286,7 @@ func _handle_pending_memory_confirmation(raw_text: String) -> bool:
 		var stored = memory_service.record_player_statement(pending_memory_confirmation_text)
 		pending_memory_confirmation_action = ""
 		pending_memory_confirmation_text = ""
+		pending_memory_confirmation_timer = 0.0
 		if stored == null:
 			_trigger_apc_response("I could not store that memory.")
 		else:
@@ -278,6 +296,7 @@ func _handle_pending_memory_confirmation(raw_text: String) -> bool:
 	if pending_memory_confirmation_action == "clear_all":
 		pending_memory_confirmation_action = ""
 		pending_memory_confirmation_text = ""
+		pending_memory_confirmation_timer = 0.0
 		if memory_service.clear_all_memories():
 			_trigger_apc_response("All stored memory has been cleared.")
 		else:
@@ -307,6 +326,7 @@ func cancel_active_conversation_or_task() -> void:
 	pending_clarification_target = ""
 	pending_memory_confirmation_action = ""
 	pending_memory_confirmation_text = ""
+	pending_memory_confirmation_timer = 0.0
 	pending_forget_candidates.clear()
 	_stop_apc_speech()
 	_set_state(State.IDLE)

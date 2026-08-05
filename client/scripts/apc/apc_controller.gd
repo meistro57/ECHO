@@ -15,6 +15,9 @@ var navigation_ready: bool = false
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var _last_slide_collision_count: int = 0
 var _current_action_request: ActionTypes.ActionRequest
+var _explicit_action_request: ActionTypes.ActionRequest = null
+var _explicit_action_expiry_ms: int = 0
+const EXPLICIT_ACTION_DURATION_MS: int = 8000
 
 signal state_changed(new_state: String)
 
@@ -85,17 +88,22 @@ func _physics_process(delta: float) -> void:
 			if action_controller:
 				action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
 	else:
-		# 6. Pipeline Step 2: Brain Decision
-		var current_action_enum: ActionTypes.Action = ActionTypes.Action.NONE
-		if _current_action_request != null:
-			current_action_enum = _current_action_request.action
+		# 6. Explicit user action takes priority over autonomous brain decisions
+		if _explicit_action_request != null and Time.get_ticks_msec() <= _explicit_action_expiry_ms:
+			_handle_explicit_action(delta, player_visible, target)
+		else:
+			_explicit_action_request = null
+			# 6. Pipeline Step 2: Brain Decision
+			var current_action_enum: ActionTypes.Action = ActionTypes.Action.NONE
+			if _current_action_request != null:
+				current_action_enum = _current_action_request.action
 
-		if brain:
-			_current_action_request = brain.decide_action_with_delta(delta, snapshot, get_state_string(), current_action_enum)
+			if brain:
+				_current_action_request = brain.decide_action_with_delta(delta, snapshot, get_state_string(), current_action_enum)
 
-		# 7. Pipeline Step 3 & 4: Action Execution via ActionController
-		if action_controller and _current_action_request != null:
-			action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
+			# 7. Pipeline Step 3 & 4: Action Execution via ActionController
+			if action_controller and _current_action_request != null:
+				action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
 
 	# 8. Physical movement
 	move_and_slide()
@@ -106,6 +114,33 @@ func start_bring_red_box_task() -> void:
 		var task_req: TaskRequest = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_debug")
 		task_controller.start_task(task_req)
 		print("[APCController] Started deterministic task: BRING_OBJECT_TO_PLAYER (red_box)")
+
+func execute_user_action(request: ActionTypes.ActionRequest) -> void:
+	if request == null:
+		return
+	_explicit_action_request = request
+	_explicit_action_expiry_ms = Time.get_ticks_msec() + EXPLICIT_ACTION_DURATION_MS
+
+func _handle_explicit_action(delta: float, player_visible: bool, player_node: Node3D) -> void:
+	if _explicit_action_request == null:
+		return
+
+	match _explicit_action_request.action:
+		ActionTypes.Action.PICK_UP_OBJECT:
+			if interaction_controller:
+				interaction_controller.request_pick_up(_explicit_action_request.target_id)
+			_explicit_action_request = null
+		ActionTypes.Action.DROP_HELD_OBJECT:
+			if interaction_controller:
+				interaction_controller.request_drop()
+			_explicit_action_request = null
+		ActionTypes.Action.GIVE_OBJECT_TO_PLAYER:
+			if interaction_controller:
+				interaction_controller.request_give_to_player()
+			_explicit_action_request = null
+		_:
+			if action_controller:
+				action_controller.execute_action_request(_explicit_action_request, delta, player_visible, player_node)
 
 func _on_ai_task_accepted(task_req: TaskRequest) -> void:
 	if task_controller:
