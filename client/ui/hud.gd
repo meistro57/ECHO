@@ -3,6 +3,10 @@ extends Control
 
 @onready var phase_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PhaseLabel
 @onready var state_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/APCStateLabel
+@onready var distance_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/DistanceLabel
+@onready var next_path_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NextPathLabel
+@onready var velocity_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/VelocityLabel
+@onready var nav_finished_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NavFinishedLabel
 @onready var margin_container: MarginContainer = $MarginContainer
 
 var apc_node: APCController
@@ -21,5 +25,18 @@ func _process(_delta: float) -> void:
 		if apcs.size() > 0 and apcs[0] is APCController:
 			apc_node = apcs[0] as APCController
 
-	if apc_node and state_label:
-		state_label.text = "APC State: " + apc_node.get_state_string()
+	if apc_node:
+		if state_label:
+			state_label.text = "APC State: " + apc_node.get_state_string()
+		if distance_label and apc_node.target:
+			var dist = apc_node.global_position.distance_to(apc_node.target.global_position)
+			distance_label.text = "Distance: %.2fm" % dist
+		if apc_node.nav_agent:
+			if next_path_label:
+				var next_p = apc_node.nav_agent.get_next_path_position()
+				next_path_label.text = "Next Path Pos: (%.1f, %.1f, %.1f)" % [next_p.x, next_p.y, next_p.z]
+			if nav_finished_label:
+				nav_finished_label.text = "Nav Finished: %s" % ("YES" if apc_node.nav_agent.is_navigation_finished() else "NO")
+		if velocity_label:
+			var vel = apc_node.velocity
+			velocity_label.text = "Velocity: (%.1f, %.1f, %.1f) [Speed: %.1fm/s]" % [vel.x, vel.y, vel.z, Vector2(vel.x, vel.z).length()]

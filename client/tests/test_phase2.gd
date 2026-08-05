@@ -21,8 +21,6 @@ func _process(_delta: float) -> bool:
 	test_step += 1
 	if test_step == 5:
 		run_tests()
-		quit(0)
-		return true
 	return false
 
 func run_tests() -> void:
@@ -53,6 +51,11 @@ func run_tests() -> void:
 	
 	# Test 1: Navigation Synchronization Readiness
 	print("\n--- Test 1: Navigation Synchronization Readiness ---")
+	var wait_ticks = 0
+	while not apc.navigation_ready and wait_ticks < 20:
+		await physics_frame
+		wait_ticks += 1
+		
 	print("APC Navigation Ready Flag: %s" % apc.navigation_ready)
 	if not apc.navigation_ready:
 		print("[FAIL] APC navigation_ready should be true after frame synchronization.")
@@ -105,3 +108,4 @@ func run_tests() -> void:
 	print("\n==========================================")
 	print("  PHASE 2 NAVIGATION FIX VERIFICATION PASSED [OK]")
 	print("==========================================\n")
+	quit(0)

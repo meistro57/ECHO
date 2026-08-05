@@ -46,12 +46,12 @@ func run_tests() -> void:
 		
 	var player = test_room.get_node_or_null("Player")
 	var apc = test_room.get_node_or_null("APC")
-	var crate = test_room.get_node_or_null("CrateObstacle")
-	var floor_node = test_room.get_node_or_null("Floor")
+	var crate = test_room.find_child("CrateObstacle", true, false)
+	var floor_node = test_room.find_child("Floor", true, false)
 	var hud = test_room.get_node_or_null("CanvasLayer/HUD")
 	
 	if player == null or apc == null or crate == null or floor_node == null or hud == null:
-		print("[FAIL] Missing core environment nodes.")
+		print("[FAIL] Missing core environment nodes. (Player: %s, APC: %s, Crate: %s, Floor: %s, HUD: %s)" % [player != null, apc != null, crate != null, floor_node != null, hud != null])
 		quit(1)
 		return
 		

@@ -5,7 +5,7 @@ config_version=5
 config/name="ECHO"
 config/description="Embodied AI Player Character Prototype"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.7", "Forward Plus")
 
 [display]
 

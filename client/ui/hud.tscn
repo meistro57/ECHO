@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 340.0
-offset_bottom = 220.0
+offset_right = 380.0
+offset_bottom = 300.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -60,6 +60,26 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.8, 0.2, 1)
 theme_override_font_sizes/font_size = 14
 text = "APC State: IDLE"
+
+[node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Distance: 0.0m"
+
+[node name="NextPathLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Next Path Pos: (0.0, 0.0, 0.0)"
+
+[node name="VelocityLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Velocity: (0.0, 0.0, 0.0) [Speed: 0.0m/s]"
+
+[node name="NavFinishedLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Nav Finished: NO"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
