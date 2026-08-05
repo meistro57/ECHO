@@ -6,6 +6,7 @@ extends Node3D
 
 var ai_service: AIService
 var current_ai_action_request: ActionTypes.ActionRequest
+var current_ai_task_request: TaskRequest
 var last_validation_error: String = "None"
 var last_requested_action_name: String = "None"
 var last_accepted_action_name: String = "None"
@@ -20,6 +21,7 @@ var _last_in_flight_request_id: String = ""
 var _last_player_visible: bool = false
 
 signal ai_decision_accepted(request: ActionTypes.ActionRequest)
+signal ai_task_accepted(task_req: TaskRequest)
 signal ai_decision_rejected(error_msg: String)
 
 func _ready() -> void:
@@ -77,7 +79,7 @@ func request_ai_decision(perception_snapshot: Dictionary, apc_state: String, cur
 	var messages: Array[Dictionary] = [
 		{
 			"role": "system",
-			"content": "You are the decision module for an embodied AI Player Character in ECHO.\nChoose exactly one legal action using only the supplied perception data.\nYou do not control the world directly.\nYou may only call submit_apc_action.\nDo not invent entities, positions, abilities, or facts.\nIf information is missing or uncertain, choose WAIT."
+			"content": "You are the decision module for an embodied AI Player Character in ECHO.\nChoose exactly one legal action using only the supplied perception data.\nYou do not control the world directly.\nYou may call submit_apc_action or submit_apc_task.\nDo not invent entities, positions, abilities, or facts.\nIf information is missing or uncertain, choose WAIT."
 		},
 		{
 			"role": "user",
@@ -105,8 +107,8 @@ func request_ai_decision(perception_snapshot: Dictionary, apc_state: String, cur
 	var endpoint: String = ai_service.active_provider.get_endpoint_url()
 	var headers: PackedStringArray = ai_service.active_provider.build_headers()
 
-	# Build request payload with tool schema
-	var tool_def: Dictionary = {
+	# Build request payload with tool schemas
+	var action_tool_def: Dictionary = {
 		"type": "function",
 		"function": {
 			"name": "submit_apc_action",
@@ -116,7 +118,7 @@ func request_ai_decision(perception_snapshot: Dictionary, apc_state: String, cur
 				"properties": {
 					"action": {
 						"type": "string",
-						"enum": ["IDLE", "WAIT", "FOLLOW_PLAYER", "LOOK_AT_PLAYER", "LOOK_AT_OBJECT", "MOVE_TO_OBJECT"]
+						"enum": ["IDLE", "WAIT", "FOLLOW_PLAYER", "LOOK_AT_PLAYER", "LOOK_AT_OBJECT", "MOVE_TO_OBJECT", "PICK_UP_OBJECT", "DROP_HELD_OBJECT", "GIVE_OBJECT_TO_PLAYER"]
 					},
 					"target_id": {
 						"type": "string",
@@ -137,11 +139,37 @@ func request_ai_decision(perception_snapshot: Dictionary, apc_state: String, cur
 		}
 	}
 
+	var task_tool_def: Dictionary = {
+		"type": "function",
+		"function": {
+			"name": "submit_apc_task",
+			"description": "Request a trusted multi-step task (e.g. BRING_OBJECT_TO_PLAYER).",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"task_type": {
+						"type": "string",
+						"enum": ["BRING_OBJECT_TO_PLAYER"]
+					},
+					"target_id": {
+						"type": "string",
+						"description": "Target object ID (e.g. red_box)"
+					},
+					"reason": {
+						"type": "string",
+						"description": "Short explanation for task request"
+					}
+				},
+				"required": ["task_type", "target_id"],
+				"additionalProperties": false
+			}
+		}
+	}
+
 	var payload: Dictionary = {
 		"model": ai_service.get_model_name(),
 		"messages": messages,
-		"tools": [tool_def],
-		"tool_choice": {"type": "function", "function": {"name": "submit_apc_action"}},
+		"tools": [action_tool_def, task_tool_def],
 		"temperature": 0.0,
 		"max_tokens": 100,
 		"stream": false
@@ -180,15 +208,25 @@ func _on_ai_request_completed(response: AIResponse) -> void:
 	var val_result: AIDecisionAdapter.ValidationResult = AIDecisionAdapter.validate_and_convert(response.content, raw_tool_calls, snapshot)
 
 	if val_result.success:
-		current_ai_action_request = val_result.action_request
 		decision_status = "ACCEPTED"
 		fallback_active = false
-		last_accepted_action_name = ActionTypes.get_action_name(val_result.action_request.action)
-		last_requested_action_name = last_accepted_action_name
 		last_validation_error = "None"
-		ai_decision_accepted.emit(val_result.action_request)
+
+		if val_result.task_request != null:
+			current_ai_task_request = val_result.task_request
+			current_ai_action_request = null
+			last_accepted_action_name = "TASK: " + val_result.task_request.task_type
+			last_requested_action_name = last_accepted_action_name
+			ai_task_accepted.emit(val_result.task_request)
+		elif val_result.action_request != null:
+			current_ai_action_request = val_result.action_request
+			current_ai_task_request = null
+			last_accepted_action_name = ActionTypes.get_action_name(val_result.action_request.action)
+			last_requested_action_name = last_accepted_action_name
+			ai_decision_accepted.emit(val_result.action_request)
 	else:
 		current_ai_action_request = null
+		current_ai_task_request = null
 		decision_status = "REJECTED"
 		fallback_active = true
 		last_validation_error = val_result.error_message
@@ -197,6 +235,7 @@ func _on_ai_request_completed(response: AIResponse) -> void:
 
 func _on_ai_request_failed(response: AIResponse) -> void:
 	current_ai_action_request = null
+	current_ai_task_request = null
 	decision_status = "FALLBACK"
 	fallback_active = true
 	if response != null:

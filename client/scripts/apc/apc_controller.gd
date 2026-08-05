@@ -7,6 +7,9 @@ extends CharacterBody3D
 @onready var perception: APCPerception = $Perception
 @onready var brain: APCBrain = $Brain
 @onready var action_controller: ActionController = $ActionController
+@onready var interaction_controller: InteractionController = $InteractionController
+@onready var task_controller: TaskController = $TaskController
+@onready var carry_socket: CarriedObjectSocket = $CarrySocket
 
 var navigation_ready: bool = false
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
@@ -20,6 +23,11 @@ func _ready() -> void:
 	if nav_agent:
 		nav_agent.path_desired_distance = 1.0
 		nav_agent.target_desired_distance = 0.5
+
+	if brain and brain.ai_brain:
+		if not brain.ai_brain.ai_task_accepted.is_connected(_on_ai_task_accepted):
+			brain.ai_brain.ai_task_accepted.connect(_on_ai_task_accepted)
+
 	call_deferred("_wait_for_navigation_ready")
 
 func _wait_for_navigation_ready() -> void:
@@ -48,6 +56,10 @@ func _physics_process(delta: float) -> void:
 		if players.size() > 0:
 			target = players[0] as Node3D
 
+	# Handle F5 debug trigger for deterministic bring task
+	if Input.is_action_just_pressed("test_bring_red_box"):
+		start_bring_red_box_task()
+
 	# 3. Wait for navigation readiness
 	if not navigation_ready or target == null:
 		velocity.x = move_toward(velocity.x, 0.0, 3.5 * delta * 5.0)
@@ -65,23 +77,44 @@ func _physics_process(delta: float) -> void:
 	if snapshot.has("human_player"):
 		player_visible = bool(snapshot["human_player"].get("visible", false))
 
-	# 5. Pipeline Step 2: Brain Decision
-	var current_action_enum: ActionTypes.Action = ActionTypes.Action.NONE
-	if _current_action_request != null:
-		current_action_enum = _current_action_request.action
+	# 5. Check Active Task Controller
+	if task_controller and task_controller.is_running_task:
+		var task_action_req: ActionTypes.ActionRequest = task_controller.process_task_tick(delta, target)
+		if task_action_req != null:
+			_current_action_request = task_action_req
+			if action_controller:
+				action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
+	else:
+		# 6. Pipeline Step 2: Brain Decision
+		var current_action_enum: ActionTypes.Action = ActionTypes.Action.NONE
+		if _current_action_request != null:
+			current_action_enum = _current_action_request.action
 
-	if brain:
-		_current_action_request = brain.decide_action_with_delta(delta, snapshot, get_state_string(), current_action_enum)
+		if brain:
+			_current_action_request = brain.decide_action_with_delta(delta, snapshot, get_state_string(), current_action_enum)
 
-	# 6. Pipeline Step 3 & 4: Action Execution via ActionController
-	if action_controller and _current_action_request != null:
-		action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
+		# 7. Pipeline Step 3 & 4: Action Execution via ActionController
+		if action_controller and _current_action_request != null:
+			action_controller.execute_action_request(_current_action_request, delta, player_visible, target)
 
-	# 7. Physical movement
+	# 8. Physical movement
 	move_and_slide()
 	_last_slide_collision_count = get_slide_collision_count()
 
+func start_bring_red_box_task() -> void:
+	if task_controller:
+		var task_req: TaskRequest = TaskRequest.new("BRING_OBJECT_TO_PLAYER", "red_box", "human_debug")
+		task_controller.start_task(task_req)
+		print("[APCController] Started deterministic task: BRING_OBJECT_TO_PLAYER (red_box)")
+
+func _on_ai_task_accepted(task_req: TaskRequest) -> void:
+	if task_controller:
+		task_controller.start_task(task_req)
+		print("[APCController] Started AI-requested task: ", task_req.task_type)
+
 func get_state_string() -> String:
+	if task_controller and task_controller.is_running_task:
+		return "TASK: " + task_controller.get_current_step_string()
 	if _current_action_request != null:
 		return ActionTypes.get_action_name(_current_action_request.action)
 	return "IDLE"
@@ -95,11 +128,15 @@ func get_perception_snapshot() -> Dictionary:
 	return {}
 
 func get_brain_decision_string() -> String:
+	if task_controller and task_controller.is_running_task:
+		return "TASK: " + task_controller.get_current_step_string()
 	if _current_action_request != null:
 		return ActionTypes.get_action_name(_current_action_request.action)
 	return "IDLE"
 
 func get_execution_status_string() -> String:
+	if task_controller and task_controller.is_running_task:
+		return task_controller.get_task_status_string()
 	if action_controller:
 		return action_controller.current_execution_status
 	return "IDLE"

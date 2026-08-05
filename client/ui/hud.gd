@@ -12,6 +12,7 @@ extends Control
 @onready var nav_finished_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/NavFinishedLabel
 @onready var player_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/PlayerPercLabel
 @onready var redbox_perc_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/RedboxPercLabel
+@onready var task_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/TaskStatusLabel
 @onready var event_log_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/EventLogLabel
 @onready var ai_status_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIStatusLabel
 @onready var ai_detail_label: Label = $MarginContainer/Panel/MarginContainer/VBoxContainer/AIDetailLabel
@@ -22,7 +23,7 @@ var _ai_service: AIService
 
 func _ready() -> void:
 	if phase_label:
-		phase_label.text = "Phase 6: AI-Driven Action Selection & Decision Bridge"
+		phase_label.text = "Phase 7: Physical Object Interaction & Task Execution"
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("toggle_debug"):
@@ -92,6 +93,25 @@ func _process(_delta: float) -> void:
 			collisions_label.text = "Slide Collisions: %d" % _apc_node.get_last_slide_collision_count()
 		if nav_finished_label and _apc_node.nav_agent:
 			nav_finished_label.text = "Nav Finished: %s" % ("YES" if _apc_node.nav_agent.is_navigation_finished() else "NO")
+
+		# Update Task & Interaction Status Label
+		if task_status_label:
+			var held_obj_str: String = "None"
+			if _apc_node.interaction_controller and _apc_node.interaction_controller.get_held_object():
+				var ho: PortableObject = _apc_node.interaction_controller.get_held_object()
+				held_obj_str = "%s (%s)" % [ho.display_name, ho.object_id]
+
+			var t_status: String = "IDLE"
+			var t_step: String = "None"
+			var t_err: String = "None"
+			if _apc_node.task_controller:
+				t_status = _apc_node.task_controller.get_task_status_string()
+				t_step = _apc_node.task_controller.get_current_step_string()
+				t_err = _apc_node.task_controller.last_task_error
+
+			task_status_label.text = "Held Object: %s | Task Status: %s | Step: %s | Task Err: %s" % [
+				held_obj_str, t_status, t_step, t_err
+			]
 
 		# Update Perception Debug Labels
 		if _apc_node.has_method("get_perception_snapshot"):

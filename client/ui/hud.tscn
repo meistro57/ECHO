@@ -14,8 +14,8 @@ script = ExtResource("1_hud")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-offset_right = 540.0
-offset_bottom = 560.0
+offset_right = 560.0
+offset_bottom = 590.0
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -53,7 +53,7 @@ text = "ECHO Prototype"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "Phase 6: AI-Driven Action Selection & Decision Bridge"
+text = "Phase 7: Physical Object Interaction & Task Execution"
 
 [node name="APCStateLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -66,6 +66,12 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.5, 0.9, 1)
 theme_override_font_sizes/font_size = 11
 text = "Brain Mode: DETERMINISTIC | AI Status: IDLE | Fallback: NO"
+
+[node name="TaskStatusLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+text = "Held Object: None | Task Status: IDLE | Step: None | Task Err: None"
 
 [node name="DistanceLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -152,10 +158,6 @@ text = "Controls:"
 [node name="ControlsLabel" type="Label" parent="MarginContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "WASD: Move
-Mouse: Look
-Space: Jump
-Escape: Release Mouse
-F1: Toggle Debug HUD
-F3: Test AI Connectivity
-F4: Toggle Brain Mode (DETERMINISTIC / AI)"
+text = "WASD: Move | Mouse: Look | Space: Jump | Escape: Mouse
+F1: Toggle Debug HUD | F3: Test AI Connectivity
+F4: Toggle Brain Mode | F5: Test Bring Red Box Task"

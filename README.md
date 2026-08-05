@@ -20,9 +20,9 @@ ECHO is an experimental framework exploring a new paradigm in game AI:
 
 ---
 
-## 🚀 Current Project Status: Phase 6 Completed
+## 🚀 Current Project Status: Phase 7 Completed
 
-ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete 5-tier cognitive architecture pipeline with deterministic fallback:
+ECHO is built targeting **Godot 4.7.1 Stable**. The framework implements a complete 6-tier cognitive and physical architecture pipeline with deterministic fallback:
 
 ```
 Perception (APCPerception)
@@ -39,16 +39,18 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
        │                 │
        │        (Strict Validation)
        │                 │
-       └─────────────────┴──────────► ActionRequest
+       └─────────────────┴──────────► TaskController / ActionRequest
                                            │
-                                           ▼
-                                    ActionController
-                                           │
-                                           ▼
-                                    CharacterBody3D
+                                           ├──────────────────────────┐
+                                           ▼                          ▼
+                                    ActionController        InteractionController
+                                    (Locomotion Authority)  (Object Authority)
+                                           │                          │
+                                           ▼                          ▼
+                                    CharacterBody3D            CarrySocket / RedBox
 ```
 
-### 🧠 Cognitive Architecture Components
+### 🧠 Cognitive & Physical Architecture Components
 
 1. **Structured Perception (`APCPerception`) [Phase 3]**:
    - Engine-native non-omniscient sensing evaluating distance (`max_view_distance` = 15.0m), field of view (`field_of_view_degrees` = 110.0°), and physics raycast line-of-sight occlusion.
@@ -57,20 +59,24 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 2. **APC Brain (`APCBrain`) & Dual Modes [Phase 4 / Phase 6]**:
    - Orchestrates decision-making between `DeterministicBrain` and `AIBrain`.
    - **Deterministic Mode**: Rule-based state machine (`FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `WAIT`, `IDLE`).
-   - **AI Mode**: Sends compact perception context to OpenRouter/DeepSeek via `submit_apc_action` tool schema.
+   - **AI Mode**: Sends compact perception context to OpenRouter/DeepSeek via `submit_apc_action` or `submit_apc_task` tool schemas.
    - **Automatic Fallback**: Any network failure, rate limit, timeout, or validation rejection instantly falls back to `DeterministicBrain`.
 
-3. **AI Decision Adapter (`AIDecisionAdapter`) [Phase 6]**:
-   - Strict 10-gate validation pipeline inspecting returned tool calls.
-   - Enforces allowed action enums (`IDLE`, `WAIT`, `FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `LOOK_AT_OBJECT`, `MOVE_TO_OBJECT`), target ID existence, target type rules, and duration limits.
-   - Rejects invented targets, code execution attempts, file paths, and shell commands.
+3. **AI Decision Adapter (`AIDecisionAdapter`) [Phase 6 / Phase 7]**:
+   - Strict validation pipeline inspecting returned tool calls (`submit_apc_action` and `submit_apc_task`).
+   - Enforces allowed action enums (`IDLE`, `WAIT`, `FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `LOOK_AT_OBJECT`, `MOVE_TO_OBJECT`, `PICK_UP_OBJECT`, `DROP_HELD_OBJECT`, `GIVE_OBJECT_TO_PLAYER`), target ID existence, target type rules, and duration limits.
+   - Rejects raw model step injection attempts, invented targets, code execution attempts, file paths, and shell commands.
 
-4. **Action & Execution Controller (`ActionController`) [Phase 4 / Phase 6]**:
-   - Only component authorized to command locomotion, rotation, and physical velocity on `CharacterBody3D`.
-   - Maintains a rolling 20-entry debug log.
+4. **Physical Object Interaction (`InteractionController` & `CarrySocket`) [Phase 7]**:
+   - Sole authority for object pickup, carry socket attachment, ground placement raycasting, and giving objects to the player.
+   - Preserves object identity and disables collision shapes while held.
 
-5. **Live Debug HUD (F1 / F3 / F4)**:
-   - Displays APC State, Brain Mode (`DETERMINISTIC`/`AI`), AI Decision Status, Provider, Model, Latency, Token usage, Perception metrics, and Event Log.
+5. **Sequential Task Execution (`TaskController`) [Phase 7]**:
+   - Executes multi-step trusted tasks (`BRING_OBJECT_TO_PLAYER`).
+   - Expands tasks into trusted steps (`MOVE_TO_OBJECT` -> `PICK_UP_OBJECT` -> `FOLLOW_PLAYER` -> `GIVE_OBJECT_TO_PLAYER`).
+
+6. **Live Debug HUD (F1 / F3 / F4 / F5)**:
+   - Displays APC State, Brain Mode, AI Status, Task Status, Held Object, Latency, Token usage, Perception metrics, and Event Log.
 
 ---
 
@@ -85,6 +91,7 @@ DeterministicBrain    AIBrain ──► AIService ──► OpenRouter / DeepSee
 | **Toggle Debug HUD** | `F1` |
 | **Test AI Connectivity** | `F3` |
 | **Toggle Brain Mode** | `F4` (DETERMINISTIC / AI) |
+| **Test Bring Red Box Task** | `F5` |
 
 ---
 
@@ -98,7 +105,7 @@ ECHO/
 │   │   ├── main.tscn           # Main launch scene
 │   │   ├── test_room.tscn      # 3D room with NavigationRegion3D, floor, walls, crate, & RedBox
 │   │   ├── player.tscn         # First-person human player (CharacterBody3D)
-│   │   ├── apc.tscn            # Embodied APC character
+│   │   ├── apc.tscn            # Embodied APC character with CarrySocket
 │   │   └── objects/
 │   │       └── red_box.tscn    # Perceivable Red Box object
 │   ├── scripts/                # GDScript files (.gd)
@@ -111,6 +118,11 @@ ECHO/
 │   │   │   ├── ai_brain.gd           # AI decision brain component
 │   │   │   ├── ai_decision_adapter.gd# Tool call & payload validation adapter
 │   │   │   ├── action_controller.gd  # Locomotion & action execution controller
+│   │   │   ├── interaction_controller.gd # Object pickup, drop, & give controller
+│   │   │   ├── task_controller.gd    # Sequential multi-step task execution controller
+│   │   │   ├── task_request.gd       # Typed TaskRequest model with step expansion
+│   │   │   ├── task_result.gd        # Typed TaskResult state tracking model
+│   │   │   ├── carried_object_socket.gd # CarrySocket node attachment & collision manager
 │   │   │   ├── action_types.gd       # Typed Action enum, ActionRequest, & ActionResult
 │   │   │   └── apc_perception.gd     # Engine-native perception & FOV/LOS raycast component
 │   │   ├── ai/
@@ -122,7 +134,8 @@ ECHO/
 │   │   │       ├── openrouter_provider.gd # OpenRouter provider
 │   │   │       └── deepseek_provider.gd   # Direct DeepSeek provider
 │   │   ├── objects/
-│   │   │   └── red_box.gd            # Red Box object metadata script
+│   │   │   ├── portable_object.gd    # Portable object base script & contract
+│   │   │   └── red_box.gd            # Red Box object script extending PortableObject
 │   │   └── test_room.gd              # NavigationMesh baking & scene setup script
 │   ├── ui/                     # UI overlays
 │   │   ├── hud.tscn            # Debug HUD overlay scene
@@ -133,13 +146,16 @@ ECHO/
 │       ├── test_phase3.gd      # Phase 3 structured perception test
 │       ├── test_phase4.gd      # Phase 4 action & brain pipeline test
 │       ├── test_phase5.gd      # Phase 5 AI connectivity layer test
-│       └── test_phase6.gd      # Phase 6 AI decision bridge & validation test
+│       ├── test_phase6.gd      # Phase 6 AI decision bridge & validation test
+│       └── test_phase7.gd      # Phase 7 object interaction & task execution test
 ├── docs/                       # Project Documentation
 │   ├── VISION.md               # Core philosophy & vision
 │   ├── ARCHITECTURE.md         # Component & cognitive pipeline architecture
 │   ├── ROADMAP.md              # Multi-phase development roadmap
 │   ├── AI_PROVIDERS.md         # Phase 5 provider architecture documentation
-│   └── AI_DECISION_BRIDGE.md   # Phase 6 AI decision bridge documentation
+│   ├── AI_DECISION_BRIDGE.md   # Phase 6 AI decision bridge documentation
+│   ├── OBJECT_INTERACTION.md   # Phase 7 object interaction architecture
+│   └── TASK_EXECUTION.md       # Phase 7 task execution architecture
 ├── static/                     # Repository branding & media
 │   └── images/
 │       └── ECHO_LOGO.png       # Official ECHO framework logo
@@ -199,14 +215,18 @@ godot --headless --path client/ -s tests/test_phase5.gd
 
 # Phase 6 Test (AI Decision Bridge & Validation)
 godot --headless --path client/ -s tests/test_phase6.gd
+
+# Phase 7 Test (Object Interaction & Task Execution)
+godot --headless --path client/ -s tests/test_phase7.gd
 ```
 
 ---
 
-## ⚠️ Scope & Known Limitations (Phase 6 Baseline)
+## ⚠️ Scope & Known Limitations (Phase 7 Baseline)
 
-- **Constrained Toolset**: The AI model may only select actions from the legal action list (`IDLE`, `WAIT`, `FOLLOW_PLAYER`, `LOOK_AT_PLAYER`, `LOOK_AT_OBJECT`, `MOVE_TO_OBJECT`).
-- **No Object Interaction / Inventory / Speech**: Object pickup, inventory systems, speech synthesis, and combat are scheduled for future roadmap phases.
+- **Single Object Target**: Currently configured for one portable object (`RedBox`).
+- **No General Inventory Grid / Skeletal Rigging**: Object carrying uses simple node attachment (`CarrySocket`) without skeletal hand IK or inventory grid management.
+- **No Speech / Conversation**: Speech recognition and text-to-speech are scheduled for future roadmap phases.
 
 ---
 

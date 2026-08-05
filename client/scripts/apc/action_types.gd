@@ -9,7 +9,10 @@ enum Action {
 	LOOK_AT_OBJECT,
 	MOVE_TO_POSITION,
 	MOVE_TO_OBJECT,
-	WAIT
+	WAIT,
+	PICK_UP_OBJECT,
+	DROP_HELD_OBJECT,
+	GIVE_OBJECT_TO_PLAYER
 }
 
 static func get_action_name(action: Action) -> String:
@@ -22,6 +25,9 @@ static func get_action_name(action: Action) -> String:
 		Action.MOVE_TO_POSITION: return "MOVE_TO_POSITION"
 		Action.MOVE_TO_OBJECT: return "MOVE_TO_OBJECT"
 		Action.WAIT: return "WAIT"
+		Action.PICK_UP_OBJECT: return "PICK_UP_OBJECT"
+		Action.DROP_HELD_OBJECT: return "DROP_HELD_OBJECT"
+		Action.GIVE_OBJECT_TO_PLAYER: return "GIVE_OBJECT_TO_PLAYER"
 	return "UNKNOWN"
 
 class ActionRequest extends RefCounted:
